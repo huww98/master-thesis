@@ -67,11 +67,11 @@
 本文选用的相机模型是针孔相机模型，这也是在实验中采用的相机所遵循的模型。
 由于本实验中相机畸变较小，简单起见，本文选用了OpenCV中默认的径向和切向相机畸变模型\cite{?}。
 更正式地，假设共有N个相机，对于第$i$个相机（$i=1,2,\cdots,N$），
-内参标定的目标是求解每个相机的
+内参标定的目标是求解该相机的
 焦距$f_x^{(i)},f_y^{(i)}$、
 光心坐标$c_x^{(i)},c_y^{(i)}$、
 畸变参数$k_1^{(i)},k_2^{(i)},k_3^{(i)},p_1^{(i)},p_2^{(i)}$；
-外参标定的目标则是求解每个相机在世界坐标系下的
+外参标定的目标则是求解该相机在世界坐标系下的
 位置$\mathbf{t}^{(i)}=\left(x^{(i)},y^{(i)},z^{(i)}\right)$
 和姿态$\mathbf{r}^{(i)}$。
 其中$\mathbf{r}\in \mathbb{R}^3$为表示旋转的罗德里格斯向量\cite{?}。
@@ -79,7 +79,7 @@
 即令$\mathbf{t}^{(1)}=\mathbf{0}$，$\mathbf{r}^{(1)}=\mathbf{0}$。
 综上，在标定过程中共需要求解$N\times 15 - 6$个参数。
 
-在该模型下，对于任意在世界坐标系下的点$\mathbf{X}=\left[X,Y,Z\right]^\mathsf{T}$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算：
+在该模型下，对于任意在世界坐标系下的点$\mathbf{X}=\left[X,Y,Z\right]^\mathsf{T}$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
 首先，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
 \begin{align}
     \theta &= \left\|r\right\|_2 \\
@@ -89,29 +89,27 @@
          \hat{\mathbf{r}}_z & 0    & -\hat{\mathbf{r}}_x \\
         -\hat{\mathbf{r}}_y &  \hat{\mathbf{r}}_x & 0
     \end{bmatrix} \\
-    \mathbf{X}' &= \mathbf{R} \mathbf{X} + \mathbf{t}
+    \mathbf{X}' &= \mathbf{R} \mathbf{X} + \mathbf{t}\text{，}
 \end{align}
 然后，将$\mathbf{X}'$投影到第$i$个相机的成像平面，即
-\begin{align}
-    \mathbf{X}'' &= \begin{bmatrix}
-        f_x & 0 & c_x \\
-        0 & f_y & c_y \\
-        0 & 0 & 1
-    \end{bmatrix} \mathbf{X}' \\
-    \mathbf{x}'' &= \begin{bmatrix}
-        \mathbf{X}''_x / \mathbf{X}''_z \\
-        \mathbf{X}''_y / \mathbf{X}''_z
-    \end{bmatrix}
-\end{align}
-最后，对$\mathbf{x}''$应用镜头畸变，即
-\begin{align}
-    \mathbf{x}' &= \left(1 + k_1 r^2 + k_2 r^4 + k_3 r^6\right) \mathbf{x}'' \\
-    \mathbf{x} &= \mathbf{x}' + \begin{bmatrix}
-        2 p_1 x'_x x'_y + p_2 \left(r^2 + 2 (x'_x)^2\right) \\
-        p_1 \left(r^2 + 2 (x'_y)^2\right) + 2 p_2 x'_x x'_y
-    \end{bmatrix}
-\end{align}
-
+\begin{equation}
+    \mathbf{x}'' = \begin{bmatrix}
+        \mathbf{X}'_x / \mathbf{X}'_z \\
+        \mathbf{X}'_y / \mathbf{X}'_z
+    \end{bmatrix}\text{，}
+\end{equation}
+对$\mathbf{x}''$应用镜头畸变，即
+\begin{equation}
+    \mathbf{x}' = \left(1 + k_1 r^2 + k_2 r^4 + k_3 r^6\right) \mathbf{x}'' + \begin{bmatrix}
+        2 p_1 \mathbf{x}''_x \mathbf{x}''_y + p_2 \left(r^2 + 2 (\mathbf{x}''_x)^2\right) \\
+        p_1 \left(r^2 + 2 (\mathbf{x}''_y)^2\right) + 2 p_2 \mathbf{x}''_x \mathbf{x}''_y
+    \end{bmatrix}\text{，}
+\end{equation}
+其中$r = \left\|\mathbf{x}''\right\|_2$。最后，将$\mathbf{x}'$映射到以左上角为原点的像素坐标系，即
+\begin{equation}
+    \mathbf{x} = \begin{bmatrix}f_x & 0 \\ 0 & f_y \end{bmatrix} \mathbf{x}' + \begin{bmatrix}c_x \\ c_y \end{bmatrix}\text{。}
+\end{equation}
+以上过程可称为相机投影。
 
 \paragraph{二维码识别}尺度、对比度无关的二维码定位算法（创新点？不知道够不够格）
 
