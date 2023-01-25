@@ -91,13 +91,14 @@
 外参标定的目标则是求解该相机在世界坐标系下的
 位置$\mathbf{t}^{(i)}=\left(x^{(i)},y^{(i)},z^{(i)}\right)$
 和姿态$\mathbf{r}^{(i)}$。
-其中$\mathbf{r}\in \mathbb{R}^3$为表示旋转的罗德里格斯向量\cite{?}。
+其中$\mathbf{r}\in \mathbb{R}^3$为表示旋转的指数映射向量\cite{?}，
+其表示轴为$\mathbf{r}$，角度为$\left\| \mathbf{r}\right\|$的旋转。
 世界坐标系的选取是任意的，因此在相机标定阶段，不失一般性地，我们选择第一个相机作为世界坐标系。
 即令$\mathbf{t}^{(1)}=\mathbf{0}$，$\mathbf{r}^{(1)}=\mathbf{0}$。
 综上，在标定过程中共需要求解$N\times 15 - 6$个参数，记为$\delta$。
 
-在该模型下，对于任意在世界坐标系下的点$\mathbf{X}=\left[X,Y,Z\right]^\mathsf{T}$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
-首先，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
+在该模型下，对于任意在世界坐标系下的点$\mathbf{X}\in \mathbb{R}^3$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
+首先，应用罗德里格斯公式\cite{rodrigues}，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
 \begin{align}
     \theta &= \left\|r\right\|_2 \\
     \hat{\mathbf{r}} &= \mathbf{r}/ \theta \\
