@@ -1,8 +1,12 @@
 \documentclass{ctexart}
 
+\usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{amssymb}
 \usepackage{amsmath}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
 \title{基于可微分渲染的人脸3D重建}
 \author{胡玮文}
@@ -12,6 +16,8 @@
 \maketitle
 
 \tableofcontents
+
+\listoffigures
 
 \section{绪论}
 
@@ -57,6 +63,17 @@
 
 铝型材支架设计
 
+\subsubsection{被动相机同步}
+\label{sec:passive_sync}
+
+该装置无须独立供电。它能以很高的精度同时触发多台单反相机的对焦和快门，从而实现人脸多视角数据的捕获。
+
+\paragraph{单反相机快门触发原理}
+
+\paragraph{同步装置硬件设计}
+
+\paragraph{同步精度测试}
+
 \subsubsection{多相机内外参联合标定}
 
 为了建立三维物体与二维照片之间的准确对应关系，需要对相机的内参和外参进行标定。
@@ -77,7 +94,7 @@
 其中$\mathbf{r}\in \mathbb{R}^3$为表示旋转的罗德里格斯向量\cite{?}。
 世界坐标系的选取是任意的，因此在相机标定阶段，不失一般性地，我们选择第一个相机作为世界坐标系。
 即令$\mathbf{t}^{(1)}=\mathbf{0}$，$\mathbf{r}^{(1)}=\mathbf{0}$。
-综上，在标定过程中共需要求解$N\times 15 - 6$个参数。
+综上，在标定过程中共需要求解$N\times 15 - 6$个参数，记为$\delta$。
 
 在该模型下，对于任意在世界坐标系下的点$\mathbf{X}=\left[X,Y,Z\right]^\mathsf{T}$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
 首先，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
@@ -109,7 +126,38 @@
 \begin{equation}
     \mathbf{x} = \begin{bmatrix}f_x & 0 \\ 0 & f_y \end{bmatrix} \mathbf{x}' + \begin{bmatrix}c_x \\ c_y \end{bmatrix}\text{。}
 \end{equation}
-以上过程可称为相机投影。
+以上过程可称为相机投影，记为$\pi(\delta_i, \cdot)$。
+
+为了解算上述模型中的参数，通常需要使用待标定的相机对一类特殊的物体进行拍摄，称为标定物体。
+它们的特点是通常有一些在照片中容易被计算机视觉算法识别的特征点，且这些点容易在不同相机拍摄的照片间进行匹配。
+这类物体通常为标定板，即印有棋盘格、二维码、圆形或者其他易于识别的图案的硬质平面板子。
+也有一些方法\cite{colmap}使用SIFT等特征点算法来自动从任意被拍摄物体上提取和匹配特征点。但这种方法匹配成功率稍低，且忽略了物体反射光线的各向异性，因此可能会带来一些误差。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/april_board}
+    \caption{April Board上印制的二维码和棋盘格图案}
+    \label{fig:april_board}
+\end{figure}
+
+本文中使用的标定物体为April Board，即印有二维码和棋盘格组成的图案的标定板，如图\ref{fig:april_board}所示。
+该标定板的尺寸为$800 \times 800$毫米，每个二维码的边长为$88$毫米。
+该图案中棋盘格的十字角点可由算法精确完成亚像素级定位，而密集的二维码则便于在不同相片中便捷地匹配角点。
+其采用了玻璃基板，以保证标定板的刚性和平整度；
+同时采用了氧化铝表面，使标定板表面无明显镜面反射光斑，确保标定板在不同光照条件下的可靠性。
+
+在拍摄标定物体时，首先将相机固定到支架上，将任意物体摆放至预计人脸的位置作为调节的参照，并完整相机角度调节和对焦操作。
+将相机切换至手动对焦模式，以防止其内参意外发生变化。
+然后，撤走参照物，将标定板放在该位置，使用前述（第\ref{sec:passive_sync}节）被动相机同步装置同时触发所有相机进行拍摄。转动标定板，重复触发20-30次快门。
+
+\paragraph{相机标定原理}本文中的相机标定算法接收照片中的特征点坐标作为输入，求解上述相机模型中的参数$\delta$。
+正式地，假设共触发了$M$次快门，标定板中共有$K=144$个角点，算法的输入包括第$i$个相机的第$j$次触发快门拍摄中的第$k$个角点（$j = 1,2,\cdots,M$、$k = 1,2,\cdots,K$）在像素坐标系中的坐标$o_{i,j,k}\in \mathbb{R}^2$；
+以及角点在标定板坐标系中的坐标$w_k\in \mathbb{R}^3$。
+由于每次触发快门时标定板都由人工转动，因此其在世界坐标系中的位置也是未知的，故将第$j$次快门时标定板坐标系到世界坐标系的刚体变换$T_{j}(\cdot)\in SE(3)$也做为未知量。
+则本文中的相机标定问题可以表示为以下最小二乘优化问题：
+\begin{equation}
+    \argmin_{\delta,T} \sum_{i=1}^N \sum_{j=1}^M \sum_{k=1}^K \left\| o_{i,j,k} - \pi\left(\delta_i, T_j(w_k)\right) \right\|^2
+\end{equation}
 
 \paragraph{二维码识别}尺度、对比度无关的二维码定位算法（创新点？不知道够不够格）
 
@@ -120,16 +168,6 @@
 \paragraph{集束调整}
 
 \paragraph{标定结果和误差分析}
-
-\subsubsection{被动相机同步}
-
-该装置无须独立供电。它能以很高的精度同时触发多台单反相机的对焦和快门，从而实现人脸多视角数据的捕获。
-
-\paragraph{单反相机快门触发原理}
-
-\paragraph{同步装置硬件设计}
-
-\paragraph{同步精度测试}
 
 \subsubsection{主动相机/闪光灯同步}
 
