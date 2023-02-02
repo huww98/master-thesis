@@ -4,6 +4,8 @@
 \usepackage{hyperref}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
@@ -148,7 +150,7 @@
 同时采用了氧化铝表面，使标定板表面无明显镜面反射光斑，确保标定板在不同光照条件下的可靠性。
 
 在拍摄标定物体时，首先将相机固定到支架上，将任意物体摆放至预计人脸的位置作为调节的参照，并完整相机角度调节和对焦操作。
-将相机切换至手动对焦模式，以防止其内参意外发生变化。
+将相机切换至手动对焦模式，关闭光学防抖，以防止其内外参意外发生变化。
 然后，撤走参照物，将标定板放在该位置，使用前述（第\ref{sec:passive_sync}节）被动相机同步装置同时触发所有相机进行拍摄。转动标定板，重复触发20-30次快门。
 
 \paragraph{相机标定原理}本文中的相机标定算法接收照片中的特征点坐标作为输入，求解上述相机模型中的参数$\delta$。
@@ -157,18 +159,56 @@
 由于每次触发快门时标定板都由人工转动，因此其在世界坐标系中的位置也是未知的，故将第$j$次快门时标定板坐标系到世界坐标系的刚体变换$T_{j}(\cdot)\in SE(3)$也做为未知量。
 则本文中的相机标定问题可以表示为以下最小二乘优化问题：
 \begin{equation}
+    \label{eq:calib_opt}
     \argmin_{\delta,T} \sum_{i=1}^N \sum_{j=1}^M \sum_{k=1}^K \left\| o_{i,j,k} - \pi\left(\delta_i, T_j(w_k)\right) \right\|^2
 \end{equation}
+
+本节剩余部分将介绍角点的识别、精确定位，模型初始化及上述优化问题的具体求解方法。
 
 \paragraph{二维码识别}尺度、对比度无关的二维码定位算法（创新点？不知道够不够格）
 
 \paragraph{角点精确定位}二维多项式函数的拟合与鞍点查找
 
 \paragraph{多相机内参标定与外参传递}
+在第一阶段，本文将对每台相机分别进行标定，获得各相机的内参初始化值
+并估计标定版在每次触发快门时与各台相机的相对位置。
+然后，以其中某一台相机为原点，构建世界坐标系。
+由于不同相机的同一次快门的触发是严格同步的，因此可以认为若不同相机在同一次快门的触发时，拍摄到的标定板在世界坐标系中的位置是相同的。
+据此可将每台相机，以及每次快门触发作为节点，构建二部图，图中的边表示该相机在该次快门中拍摄到了标定板。
+若该二部图是连通图，则可迭代地将所有相机、所有快门触发中的标定板的位置传递到世界坐标系中，
+如算法\ref{alg:calib_init}所示。
+并最终获得$\delta$和$T$中所有参数的初始化值。
 
-\paragraph{集束调整}
+\begin{algorithm}
+    \caption{外参传递}
+    \label{alg:calib_init}
+    \begin{algorithmic}[1]
+        \Require 二部图$(V,E)$；相机$i$坐标系到第$j$次快门时标定版坐标系的刚体变换$T_{i,j}\in SE(3)$，其中$(i,j)\in E$
+        \State $i \gets 10$
+        \If{$i\geq 5$}
+            \State $i \gets i-1$
+        \Else
+            \If{$i\leq 3$}
+                \State $i \gets i+2$
+            \EndIf
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+\paragraph{集束调整}在第二阶段，本文将对所有相机进行集束调整，即直接使用公式\eqref{eq:calib_opt}中的目标函数，在上一阶段的初始化值的基础上，对模型中的所有参数进行优化。
+具体地，本文使用了Levenberg-Marquardt算法\cite{lm}，对目标函数进行优化求解。
+并手动实现了公式\eqref{eq:calib_opt}的雅克比矩阵的解析求解算法，以提升算法的速度和收敛精度。
+
+然后，排除掉误差较大的角点，再次重复上述优化过程，并如此迭代数次，每次使用更严格的误差阈值进行排除。
+这些误差较大的角点通常是由于角点定位不准确造成的，因此，将其排除后可以提高标定的精度。
 
 \paragraph{标定结果和误差分析}
+
+\begin{enumerate}
+    \item 自动对焦
+    \item 光学防抖
+    \item 角点定位失败造成的外点
+\end{enumerate}
 
 \subsubsection{主动相机/闪光灯同步}
 
