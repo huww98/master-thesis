@@ -6,9 +6,12 @@
 \usepackage{amsmath}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{xcolor}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}}
 
 \title{基于可微分渲染的人脸3D重建}
 \author{胡玮文}
@@ -20,6 +23,8 @@
 \tableofcontents
 
 \listoffigures
+
+\listofalgorithms
 
 \section{绪论}
 
@@ -165,9 +170,80 @@
 
 本节剩余部分将介绍角点的识别、精确定位，模型初始化及上述优化问题的具体求解方法。
 
-\paragraph{二维码识别}尺度、对比度无关的二维码定位算法（创新点？不知道够不够格）
+\paragraph{二维码、角点识别}为识别标定板中可供拟合的角点，本文首先识别照片中的二维码，并将二维码的四个角作为角点的候选点。
+本文所用标定板上的二维码为AprilTag，本文实现的识别算法也是基于其开源的方法\cite{AprilTag}。
+该算法是一个至下而上的算法，它首先从照片中识别直线段，然后将直线段组合成四边形，最后试图将四边形区域识别为二维码。得益于二维码的纠错功能，虽然该方法召回率稍低，但查准率非常高。同时二维码中存储的信息可用于角点在不同照片中的匹配。
 
-\paragraph{角点精确定位}二维多项式函数的拟合与鞍点查找
+本文所实现的版本的输入为相机拍摄的，原始Bayer格式的照片，其中RGB像素排列，如图\ref{fig:bayer}所示，每$2\times 2$个像素中包括一个红色像素、两个绿色像素和一个蓝色像素。
+将原始照片记为$I\in \mathbb{R}^{H\times W}$，其中$H$和$W$分别为照片的高和宽。
+其中，红色像素记为$I^R\in \mathbb{R}^{\frac{H}{2}\times \frac{W}{2}}$，绿色和蓝色像素同理记为$I^G$和$I^B$。进一步，位于红色像素右边的像素记为$I^{G1}$，位于红色像素下方的记为$I^{G2}$。
+通常数码相机进行的降噪、锐化等处理对标定并无帮助，因此本文直接使用原始照片。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/bayer}
+    \caption{Bayer格式照片示意图}
+    \label{fig:bayer}
+\end{figure}
+
+由于我们所拍摄的照片分辨率远超二维码识别所需，因此本文先对照片进行降采样。
+其具体方法是，首先只取$I^{G1}$，以排除颜色对二维码识别的影响。
+再对$I^{G1}$进行5倍平均池化，即降采样后的照片$I_{\text{down}}$的尺寸为$\frac{H}{10}\times \frac{W}{10}$。以此降低算法耗时并大大降低照片中的噪声等级，提升算法的鲁棒性。
+
+单反相机拍摄的原始照片分辨率高，可达$5472\times 3648$；
+且宽容度高，其量化后的亮度可达约13000级，相比普通JPG照片仅有256级。
+因此，本文在\cite{AprilTag}的基础上，设计了尺度、亮度无关的直线段识别算法，使其更加鲁棒，并减少算法超参数调节的麻烦。
+\TODO{尺度、亮度无关的直线段识别算法}
+
+\paragraph{角点精确定位}在上一步识别出角点后，依据角点周围的像素值，获取这些角点尽可能精确的像素坐标$o_{i,j,k}$，以保证标定的精度。
+该步骤的难点在于，算法需要对失焦造成的模糊、成像过程中的噪声等因素足够鲁棒，并达到亚像素级的精度。
+
+本文采用的算法为\cite{?}中提出的精确角点定位算法，其基本思想为：
+使用一个二维多项式函数对角点周围的像素进行拟合，然后以该多项式函数的鞍点作为该角点的精确像素坐标。
+
+具体地，本文首先需要从照片原始数据获取单通道灰度图。
+为此，需要拟合R、B两个通道和G通道的比例系数（也即求白平衡系数），这两个系数与环境光照、标定板材质等有关。
+本文假设标定板任意位置的饱和度为0，即RGB三通道的像素值应相等。
+为求系数，本文首先对上一步求得的二维码区域求凸包，以定位照片中的标定板。
+记照片原始数据为$I$，凸包区域为$A$，则所求灰度图$\bar{I}$为：
+\begin{equation}
+    \label{eq:wb}
+    \begin{cases}
+        \bar{I}^G = I^G \\
+        \bar{I}^R = I^R \frac{\sum_{i\in A}{I^{G1}_i + I^{G2}_i}}{\sum_{i\in A}{I^R_i}} \\
+        \bar{I}^B = I^B \frac{\sum_{i\in A}{I^{G1}_i + I^{G2}_i}}{\sum_{i\in A}{I^B_i}}
+    \end{cases}\text{。}
+\end{equation}
+然后，对该图使用半径为$r$的圆锥形kernel进行滤波，以使像素值平滑，从而能更好地被多项式函数拟合。
+最后，以角点的当前估计位置为中心，使用二阶二维多项式函数对周围的$2r+1 \times 2r+1$个像素进行最小二乘拟合：
+\begin{equation}
+    \label{eq:poly}
+    \hat{a} = \argmin_{a} \sum_{x,y} \left(\bar{I}(x, y) - (a_0 x^2 + a_1 y^2 + a_2 xy + a_3 x + a_4 y + a_5)\right)^2\text{。}
+\end{equation}
+在实现上，本文直接使用解析公式求解该线性最小二乘问题。最后，求该二维多项式函数的鞍点作为该角点新的估计位置：
+\begin{equation*}
+    \Delta = 4 \hat{a}_0 \hat{a}_1 - \hat{a}_2^2
+\end{equation*}
+\begin{equation}
+    \label{eq:subpixel}
+    \begin{cases}
+        x' = -\frac{\hat{a}_2 \hat{a}_4 - 2 \hat{a}_1 \hat{a}_3}{\Delta} \\
+        y' = -\frac{\hat{a}_2 \hat{a}_3 - 2 \hat{a}_0 \hat{a}_4}{\Delta}
+    \end{cases}\text{，}
+\end{equation}
+并如此迭代，直到角点的估计位置收敛，该收敛的位置即为$o$。
+在此过程中，若估计位置超出了图像范围，或$\Delta < 0$，则将该角点排除。
+$\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其他物体投下的阴影影响。
+
+在该算法中，$r$的选取可能对结果产生较大影响。较大的$r$将能利用照片中更多像素的信息，从而对噪声更加鲁棒，但也不能过大，否则周边的二维码，或相邻的其他角点等无关信息将影响拟合结果。为此，本文依据上一步识别到的二维码的尺寸以自适应地选择$r$。令$\hat{o}_{i,j}$为照片中第$i$个二维码的第$j$个角点的估计位置，$j\in\{1,2,3,4\}$，以顺时针方向排列，则$r$的选取为：
+\begin{equation}
+    \label{eq:r}
+    \begin{aligned}
+        l_{i,\textrm{edge}} & = \min_j\left(\|o_{i,j} - o_{i,j+1\mod 4}\|\right)\text{，} \\
+        l_{i,\textrm{diag}} & = \min\left(\|o_{i,1} - o_{i,3}\|, \|o_{i,2} - o_{i,4}\|\right)\text{，} \\
+        r & = \min_i\left\{0.07 l_{i,\textrm{edge}}, 0.05 l_{i,\textrm{diag}}\right\}\text{。}
+    \end{aligned}
+\end{equation}
 
 \paragraph{多相机内参标定与外参传递}
 在第一阶段，本文将对每台相机分别进行标定，获得各相机的内参初始化值
@@ -219,6 +295,7 @@
 \begin{enumerate}
     \item 自动对焦
     \item 光学防抖
+    \item 角点定位算法
     \item 角点定位失败造成的外点
     \item 相机后处理，如gamma映射、降噪、锐化、白平衡等
 \end{enumerate}
