@@ -95,9 +95,8 @@
 和姿态$\mathbf{r}^{(i)}$。
 其中$\mathbf{r}\in \mathbb{R}^3$为表示旋转的指数映射向量\cite{?}，
 其表示轴为$\mathbf{r}$，角度为$\left\| \mathbf{r}\right\|$的旋转。
-世界坐标系的选取是任意的，因此在相机标定阶段，不失一般性地，我们选择第一个相机作为世界坐标系。
-即令$\mathbf{t}^{(1)}=\mathbf{0}$，$\mathbf{r}^{(1)}=\mathbf{0}$。
-综上，在标定过程中共需要求解$N\times 15 - 6$个参数，记为$\delta$。
+世界坐标系的选取是任意的，因此在相机标定阶段，不失一般性地，我们选择第一次快门触发时的标定板坐标系为世界坐标系。
+综上，在标定过程中共需要求解$N\times 15$个参数，记为$\delta$。
 
 在该模型下，对于任意在世界坐标系下的点$\mathbf{X}\in \mathbb{R}^3$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
 首先，应用罗德里格斯公式\cite{rodrigues}，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
@@ -151,16 +150,17 @@
 
 在拍摄标定物体时，首先将相机固定到支架上，将任意物体摆放至预计人脸的位置作为调节的参照，并完整相机角度调节和对焦操作。
 将相机切换至手动对焦模式，关闭光学防抖，以防止其内外参意外发生变化。
-然后，撤走参照物，将标定板放在该位置，使用前述（第\ref{sec:passive_sync}节）被动相机同步装置同时触发所有相机进行拍摄。转动标定板，重复触发20-30次快门。
+然后，撤走参照物，将标定板放在该位置，使用前述（第\ref{sec:passive_sync}节）被动相机同步装置同时触发所有相机进行拍摄。转动标定板，重复触发15-20次快门。
 
 \paragraph{相机标定原理}本文中的相机标定算法接收照片中的特征点坐标作为输入，求解上述相机模型中的参数$\delta$。
 正式地，假设共触发了$M$次快门，标定板中共有$K=144$个角点，算法的输入包括第$i$个相机的第$j$次触发快门拍摄中的第$k$个角点（$j = 1,2,\cdots,M$、$k = 1,2,\cdots,K$）在像素坐标系中的坐标$o_{i,j,k}\in \mathbb{R}^2$；
 以及角点在标定板坐标系中的坐标$w_k\in \mathbb{R}^3$。
 由于每次触发快门时标定板都由人工转动，因此其在世界坐标系中的位置也是未知的，故将第$j$次快门时标定板坐标系到世界坐标系的刚体变换$T_{j}(\cdot)\in SE(3)$也做为未知量。
+其中固定$T_{1}$为幺元，即$T_{1}(X) = X$，以确定世界坐标系的位置。
 则本文中的相机标定问题可以表示为以下最小二乘优化问题：
 \begin{equation}
     \label{eq:calib_opt}
-    \argmin_{\delta,T} \sum_{i=1}^N \sum_{j=1}^M \sum_{k=1}^K \left\| o_{i,j,k} - \pi\left(\delta_i, T_j(w_k)\right) \right\|^2
+    \argmin_{\delta,T} \sum_{i,j,k} \left\| o_{i,j,k} - \pi\left(\delta_i, T_j(w_k)\right) \right\|^2
 \end{equation}
 
 本节剩余部分将介绍角点的识别、精确定位，模型初始化及上述优化问题的具体求解方法。
@@ -172,26 +172,38 @@
 \paragraph{多相机内参标定与外参传递}
 在第一阶段，本文将对每台相机分别进行标定，获得各相机的内参初始化值
 并估计标定版在每次触发快门时与各台相机的相对位置。
-然后，以其中某一台相机为原点，构建世界坐标系。
+具体地，本文依据相机和镜头厂商提供的传感器尺寸、图像分辨率、镜头焦距初始化相机内参$f$、$c$，使用PnP算法求解标定板在每次触发快门时与相机的相对位置$T_{i,j}$；
+然后使用Levenberg-Marquardt算法对这些参数进行调整。
+
 由于不同相机的同一次快门的触发是严格同步的，因此可以认为若不同相机在同一次快门的触发时，拍摄到的标定板在世界坐标系中的位置是相同的。
 据此可将每台相机，以及每次快门触发作为节点，构建二部图，图中的边表示该相机在该次快门中拍摄到了标定板。
 若该二部图是连通图，则可迭代地将所有相机、所有快门触发中的标定板的位置传递到世界坐标系中，
 如算法\ref{alg:calib_init}所示。
 并最终获得$\delta$和$T$中所有参数的初始化值。
 
-\begin{algorithm}
+\begin{algorithm}[t]
     \caption{外参传递}
     \label{alg:calib_init}
     \begin{algorithmic}[1]
-        \Require 二部图$(V,E)$；相机$i$坐标系到第$j$次快门时标定版坐标系的刚体变换$T_{i,j}\in SE(3)$，其中$(i,j)\in E$
-        \State $i \gets 10$
-        \If{$i\geq 5$}
-            \State $i \gets i-1$
-        \Else
-            \If{$i\leq 3$}
-                \State $i \gets i+2$
-            \EndIf
-        \EndIf
+        \Require 连通二部图$(V,E)$；第$j$次快门时标定版坐标系到相机$i$坐标系的刚体变换$\hat{T}_{i,j}\in SE(3),(i,j)\in E$
+        \Procedure{外参传递}{$V,E,\hat{T}_{i,j}$}
+            \State $C \gets \emptyset$\Comment{已传递的相机集合}
+            \State $T_{1} \gets \mathbf{I}$\Comment{以第$1$次快门时标定版坐标系作为世界坐标系}
+            \State $S \gets \{1\}$\Comment{已传递的快门触发集合}
+
+            \While{$C \cup S \neq V$}
+                \State $i \gets \forall i\in V| i\notin C, \exists j\in S| (i,j)\in E$
+                \State $U_{i} \gets T_{j}\hat{T}_{i,j}^{-1}$
+                    \Comment{相机$i$到世界坐标系的变换}
+                \State $C \gets C \cup \{i\}$
+                \ForAll{$j | (i,j)\in E, j\notin S$}
+                    \State $T_{j} \gets U_{i}\hat{T}_{i,j}$
+                        \Comment{第$j$次快门时标定版到世界坐标系的变换}
+                \EndFor
+                \State $S \gets S \cup \{j\in V| (i,j)\in E\}$
+            \EndWhile
+            \State \textbf{return} $U, T$
+        \EndProcedure
     \end{algorithmic}
 \end{algorithm}
 
@@ -208,6 +220,7 @@
     \item 自动对焦
     \item 光学防抖
     \item 角点定位失败造成的外点
+    \item 相机后处理，如gamma映射、降噪、锐化、白平衡等
 \end{enumerate}
 
 \subsubsection{主动相机/闪光灯同步}
