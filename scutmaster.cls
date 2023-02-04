@@ -97,6 +97,7 @@
             \zihao{2}\@title\par\vskip 80pt
 
             \zihao{3}
+            \ctexset{linestretch=10} % suppress warning
             \begin{tabular}{w{s}{6.5em} c}
                 作者姓名 & \@author\\
                 \cline{2-2}
@@ -134,6 +135,7 @@
 }
 \newcommand{\nominationpage}{
     \begin{titlepage}
+        \ctexset{linestretch=10} % suppress warning
         \heiti\zihao{4}\noindent
         \begin{tabularx}{\textwidth}{w{s}{3em}@{：}Xl}
             分类号 & \@classificationnumber & 学校代码：10561 \\
@@ -149,8 +151,8 @@
         \end{center}
 
         \vfill
-        \songti\zihao{5}\noindent
         \setlength\extrarowheight{1em}
+        \songti\zihao{5}\noindent
         \begin{tabularx}{\textwidth}{XX}
             作者姓名：\@author     & 指导教师姓名、职称: \@supervisor~\@supervisortitle\\
             申请学位级别：\@degree & 学科专业名称：\@major \\
