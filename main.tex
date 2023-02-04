@@ -2,10 +2,6 @@
 
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{amssymb}
-\usepackage{amsmath}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
 \usepackage{xcolor}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -18,14 +14,28 @@
 
 \begin{document}
 
+\frontmatter
+\pagestyle{plain}
 \maketitle
+
+\chapter*{摘要}
+
+你好，世界！
+
+\keyword{关键词} 可微分渲染
+
+\chapter*{Abstract}
+
+Hello, world!
+
+\keyword{Keywords} Differentiable rendering
 
 \tableofcontents
 
 \listoffigures
 
-\listofalgorithms
-
+\mainmatter
+\pagestyle{main}
 \chapter{绪论}
 
 \chapter{相关研究综述}
@@ -278,7 +288,7 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
                 \EndFor
                 \State $S \gets S \cup \{j\in V| (i,j)\in E\}$
             \EndWhile
-            \State \textbf{return} $U, T$
+            \State \Return $U, T$
         \EndProcedure
     \end{algorithmic}
 \end{algorithm}
@@ -361,8 +371,9 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
 
 \chapter{结论与展望}
 
-\chapter*{参考文献}
+\backmatter
+\chapter{参考文献}
 
-\chapter*{致谢}
+\chapter{致谢}
 
 \end{document}
