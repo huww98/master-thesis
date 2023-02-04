@@ -63,7 +63,7 @@ INTEGERS {
     #1 'citation.et.al.use.first :=
     #4 'bibliography.et.al.min :=
     #3 'bibliography.et.al.use.first :=
-    #1 'uppercase.name :=
+    #0 'uppercase.name :=
     #0 'terms.in.macro :=
     #0 'year.after.author :=
     #1 'period.after.author :=
@@ -84,8 +84,8 @@ INTEGERS {
     #0 'only.start.page :=
     #0 'wave.dash.in.pages :=
     #1 'show.urldate :=
-    #1 'show.url :=
-    #1 'show.doi :=
+    #0 'show.url :=
+    #0 'show.doi :=
     #1 'show.preprint :=
     #0 'show.note :=
     #0 'show.english.translation :=
