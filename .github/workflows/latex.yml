@@ -1,0 +1,16 @@
+name: Build LaTeX document
+on: [push]
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile LaTeX document
+        uses: dante-ev/latex-action@latest
+        with:
+          root_file: main.tex
+          args: -xelatex -file-line-error -interaction=nonstopmode
+      - uses: actions/upload-artifact@v3
+        with:
+          name: thesis
+          path: main.pdf
