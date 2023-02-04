@@ -221,3 +221,6 @@
     \bookmainmatter
     \pagestyle{main}
 }
+
+\RequirePackage{gbt7714}
+\bibliographystyle{gbt7714-numerical}
