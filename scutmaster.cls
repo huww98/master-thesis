@@ -86,8 +86,14 @@
 
 \newcommand{\dateform}{\hphantom{2023}年\hphantom{12}月\hphantom{31}日}
 
+\newenvironment{standalonepage}{
+    \cleardoublepage
+    \pagestyle{empty}
+}{\newpage}
+
 \renewcommand{\maketitle}{
     \pagestyle{empty}
+    \pagenumbering{Roman}
     \begin{titlepage}
         \null\vfil
         \begin{center}
@@ -115,7 +121,7 @@
     \end{titlepage}
 }
 \newcommand{\maketitleEN}{
-    \begin{titlepage}
+    \begin{standalonepage}
         \null\vfil
         \vskip 60pt
         \begin{center}
@@ -131,10 +137,10 @@
             Guangzhou, China
         \end{center}
         \vfil\null
-    \end{titlepage}
+    \end{standalonepage}
 }
 \newcommand{\nominationpage}{
-    \begin{titlepage}
+    \begin{standalonepage}
         \ctexset{linestretch=10} % suppress warning
         \heiti\zihao{4}\noindent
         \begin{tabularx}{\textwidth}{w{s}{3em}@{：}Xl}
@@ -165,11 +171,11 @@
                 委员：\underline{\hspace{30em}}
             } \\
         \end{tabularx}
-    \end{titlepage}
+    \end{standalonepage}
 }
 
 \newcommand{\declareoforiginality}{
-    \begin{titlepage}
+    \begin{standalonepage}
     \songti\zihao{4}
     \begin{center}
         \zihao{2}\linespread{1.0}\selectfont
@@ -207,7 +213,7 @@
         联系地址(含邮编)：\@address
     }
     \end{tabularx}
-    \end{titlepage}
+    \end{standalonepage}
 }
 
 \let\bookfrontmatter\frontmatter
