@@ -109,7 +109,9 @@
                 \cline{2-2}
                 学位类别 & \@degree\\
                 \cline{2-2}
-                指导教师 & \@supervisor\\
+                指导教师 & \@supervisor~\@supervisortitle\\
+                \cline{2-2}
+                        &\\
                 \cline{2-2}
                 所在学院 & \@school\\
                 \cline{2-2}
