@@ -36,13 +36,13 @@
 \declareoforiginality
 
 \frontmatter
-\chapter*{摘要}
+\chapter{摘要}
 
 你好，世界！
 
 \keyword{关键词} 可微分渲染
 
-\chapter*{Abstract}
+\chapter{Abstract}
 
 Hello, world!
 
@@ -53,11 +53,13 @@ Hello, world!
 \listoffigures
 
 \mainmatter
-\chapter{绪论}
+\include{intro.tex}
 
 \chapter{相关研究综述}
+\label{chap:related_work}
 
 \chapter{适应未知背景的可微分渲染方法}
+\label{chap:method}
 
 \section{问题定义}
 
@@ -74,6 +76,7 @@ Hello, world!
 \section{讨论}
 
 \chapter{基于单张自然环境照片的人脸重建}
+\label{chap:recon}
 
 \section{总体目标}
 
@@ -88,6 +91,7 @@ Hello, world!
 \section{局限性}
 
 \chapter{多视角人脸重建实验平台}
+\label{chap:platform}
 
 \section{总体目标}
 
@@ -166,6 +170,7 @@ Hello, world!
 \end{itemize}
 
 \chapter{结论与展望}
+\label{chap:conclusion}
 
 \backmatter
 \bibliography{main}

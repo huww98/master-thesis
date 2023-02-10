@@ -232,3 +232,5 @@
 
 \RequirePackage{gbt7714}
 \bibliographystyle{gbt7714-numerical}
+
+\RequirePackage{tocbibind}
