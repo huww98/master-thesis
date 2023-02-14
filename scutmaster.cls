@@ -17,23 +17,27 @@
 \ctexset{
     chapter={
         format=\zihao{-2}\heiti\centering,
-        beforeskip=0.5em plus 1.0em minus 0.1em,
-        afterskip=0.5em plus 0.5em minus 0.1em,
+        beforeskip=1.0ex plus 1.0ex minus 0.1ex,
+        afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
     section={
         format=\zihao{-3}\heiti,
-        beforeskip=0.5em plus 1.0em minus 0.1em,
-        afterskip=0.5em plus 0.5em minus 0.1em,
+        beforeskip=1.0ex plus 1.0ex minus 0.1ex,
+        afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
     subsection={
         format=\zihao{4}\heiti,
-        beforeskip=0.5em plus 1.0em minus 0.1em,
-        afterskip=0.5em plus 0.5em minus 0.1em,
+        beforeskip=1.0ex plus 1.0ex minus 0.1ex,
+        afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
     subsubsection={
         format=\zihao{-4}\heiti,
-        beforeskip=0.5em plus 1.0em minus 0.1em,
-        afterskip=0.5em plus 0.5em minus 0.1em,
+        beforeskip=1.0ex plus 1.0ex minus 0.1ex,
+        afterskip=1.0ex plus 0.5ex minus 0.1ex,
+    },
+    paragraph={
+        beforeskip=1.0ex plus 1.0ex minus 0.1ex,
+        afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
 }
 
