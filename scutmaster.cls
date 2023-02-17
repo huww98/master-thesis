@@ -107,7 +107,7 @@
             \zihao{2}\@title\par\vskip 80pt
 
             \zihao{3}
-            \ctexset{linestretch=10} % suppress warning
+            \hbadness=10000 % suppress warning
             \begin{tabular}{w{s}{6.5em} c}
                 作者姓名 & \@author\\
                 \cline{2-2}
