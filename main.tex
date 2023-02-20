@@ -1,9 +1,14 @@
 \documentclass{scutmaster}
 
+\usepackage{pgf}
+\usepackage{import}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{subcaption}
+\usepackage{totcount}
+
+\regtotcounter{chapter}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
@@ -58,22 +63,7 @@ Hello, world!
 
 \include{related_work}
 
-\chapter{适应未知背景的可微分渲染方法}
-\label{chap:method}
-
-\section{问题定义}
-
-可微分渲染旨在从参数化的3D模型，如三角形面片，纹理贴图等，渲染得到2D图片，同时计算该渲染结果关于其输入参数的梯度，以期利用基于梯度的方法优化输入参数，从而改善渲染效果。
-
-然而现有方法存在一些不足：现有可微分渲染技术大多是对整张图片估计梯度，即不区分前景和背景部分。然而，在基于自然环境照片的人脸重建任务中，我们通常只有前景（即人脸）的3D模型，而没有背景的模型。若只使用人脸模型拟合整张图片则无法得到合理的结果，在缺乏关于照片背景的先验知识时也难以对照片背景进行显式建模。
-
-\section{本文方法}
-
-收缩\&扩展约束（创新点）
-
-\section{实验结果}
-
-\section{讨论}
+\include{method}
 
 \chapter{基于单张自然环境照片的人脸重建}
 \label{chap:recon}
