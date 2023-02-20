@@ -40,6 +40,14 @@
         afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
 }
+\setlength{\parskip}{0pt plus 2pt}
+
+\RequirePackage{enumitem}
+\setlist{
+    itemsep=0pt plus 2pt,
+    parsep =0pt plus 2pt,
+    topsep =1pt plus 2pt minus .5pt,
+}
 
 \RequirePackage{algorithm}
 \RequirePackage{algpseudocode}
