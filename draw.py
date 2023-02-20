@@ -5,6 +5,9 @@ import matplotlib.transforms as transforms
 import numpy as np
 from pathlib import Path
 
+plt.rcParams["pgf.texsystem"] = "xelatex"
+plt.rcParams["pgf.preamble"] = R"\usepackage{ctex}"
+
 FIG_PATH = Path('build/figures')
 
 class HalfLocator(ticker.Locator):
@@ -66,10 +69,10 @@ def no_aa():
     axes_grad[0].set_xlabel('无可见性梯度')
 
 
-    axes_grad[1].set_xlabel('错误可见性梯度')
+    axes_grad[1].set_xlabel('错误可见性梯度\n黑色背景模型')
 
 
-    axes_grad[2].set_xlabel('理想可见性梯度')
+    axes_grad[2].set_xlabel('理想可见性梯度\n理想背景模型')
 
     for i in range(len(axes_model)):
         trans = transforms.blended_transform_factory(
