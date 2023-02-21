@@ -23,6 +23,8 @@ class HalfLocator(ticker.Locator):
 
 def no_aa():
     x, y = 8, 3
+    k = 2.
+    a_x = 2.1
     X = np.arange(x)
     Y = np.arange(y)
     X = X[None, :]
@@ -47,7 +49,8 @@ def no_aa():
                 axis.set_major_locator(ticker.MultipleLocator(1))
     axes_target[0].set_ylabel('拟合目标')
 
-    model = np.where(2 * X - Y < 5.1, 1, 0)[..., None]
+    a = k * a_x + 0.5
+    model = np.where(k * X - Y < a, 1, 0)[..., None]
     axes_model[0].imshow(model, interpolation='none', origin='lower', cmap='gray')
 
     n_sample = 256
@@ -55,18 +58,18 @@ def no_aa():
 
     for ax in axes_model:
         ax.grid(True, which='minor')
-        ax.add_line(plt.Line2D([2.3, 3.8], [-0.5, 2.5], color='red', linewidth=1))
+        ax.add_line(plt.Line2D([a_x, a_x + y/k], [-0.5, y-0.5], color='red', linewidth=1))
         ax.arrow(2.7, 0, 0.5, 0, color='red', linewidth=1, head_width=0.2, head_length=0.2)
-        ax.annotate('$a_x$', xy=(2.3, -0.5), xycoords='data',
+        ax.annotate('$a_x$', xy=(a_x, -0.5), xycoords='data',
                     xytext=(1,-1), textcoords='offset points', va='top',
                     color='red')
     axes_model[0].set_ylabel('渲染结果')
 
-    X_off = np.linspace(-0.5, 7.5, 256)
-    model_batch = np.where(2 * (X - X_off[:, None, None]) - Y < 0.5, 1, 0)[..., None]
+    X_off = np.linspace(-0.5, x-0.5, 256)
+    model_batch = np.where(k * (X - X_off[:, None, None]) - Y < 0.5, 1, 0)[..., None]
     loss = np.sum(np.abs(model_batch - target), axis=(1, 2, 3))
     axes_loss[0].step(X_off, loss, color='red')
-    axes_grad[0].plot([-0.5, 7.5], [0, 0], color='red')
+    axes_grad[0].plot([-0.5, x-0.5], [0, 0], color='red')
 
     Xo = X_off[:, None, None, None, None]
     def plot_to(idx):
@@ -77,9 +80,9 @@ def no_aa():
         axes_grad[idx].axhline(0, color=[0.7]*3, linewidth=1)
         axes_grad[idx].plot(X_off, grad, color='red')
 
-    model = 2 * (X[..., None, None] + sample) - (Y[..., None, None] + sample[:, None]) < 5.1
+    model = k * (X[..., None, None] + sample) - (Y[..., None, None] + sample[:, None]) < a
     model = np.mean(model, axis=(-1, -2))[..., None]
-    model_batch = 2 * ((X[..., None, None] - Xo) + sample) - (Y[..., None, None] + sample[:, None]) < 0.5
+    model_batch = k * ((X[..., None, None] - Xo) + sample) - (Y[..., None, None] + sample[:, None]) < 0.5
     model_batch = np.mean(model_batch, axis=(-1, -2))[..., None]
     plot_to(1)
 
@@ -104,7 +107,7 @@ def no_aa():
         trans = transforms.blended_transform_factory(
             axes_grad[i].transData, axes_grad[i].transAxes)
         con = patches.ConnectionPatch(
-            xyA=(2.3, -0.5), xyB=(2.3, 0),
+            xyA=(a_x, -0.5), xyB=(a_x, 0),
             coordsA='data', coordsB=trans,
             axesA=axes_model[i], axesB=axes_grad[i],
             color='gray', linewidth=1, linestyle='--'
