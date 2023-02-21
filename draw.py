@@ -92,13 +92,13 @@ def no_aa():
 
     axes_grad[0].yaxis.set_major_locator(ticker.MultipleLocator(1))
     axes_grad[0].set_ylabel('梯度')
-    axes_grad[0].set_xlabel('无可见性梯度')
+    axes_grad[0].set_xlabel('a) 无可见性梯度')
 
 
-    axes_grad[1].set_xlabel('错误可见性梯度\n黑色背景模型')
+    axes_grad[1].set_xlabel('b) 错误可见性梯度\n黑色背景模型')
 
 
-    axes_grad[2].set_xlabel('理想可见性梯度\n理想背景模型')
+    axes_grad[2].set_xlabel('c) 理想可见性梯度\n理想背景模型')
 
     for i in range(len(axes_model)):
         trans = transforms.blended_transform_factory(

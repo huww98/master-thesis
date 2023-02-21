@@ -14,6 +14,8 @@
     footskip=10mm
 ]{geometry}
 
+\setmainfont{Times New Roman}
+
 \ctexset{
     chapter={
         format=\zihao{-2}\heiti\centering,
