@@ -21,7 +21,7 @@ class HalfLocator(ticker.Locator):
         vmax = np.ceil(vmax * 2) / 2
         return np.arange(vmin, vmax + 0.5, 0.5)
 
-def no_aa():
+def problem():
     x, y = 8, 3
     k = 2.
     a_x = 2.1
@@ -47,7 +47,7 @@ def no_aa():
             for axis in [ax.xaxis, ax.yaxis]:
                 axis.set_minor_locator(HalfLocator())
                 axis.set_major_locator(ticker.MultipleLocator(1))
-    axes_target[0].set_ylabel('拟合目标')
+    axes_target[0].set_ylabel(R'目标$\mathcal{I}$')
 
     a = k * a_x + 0.5
     model = np.where(k * X - Y < a, 1, 0)[..., None]
@@ -63,7 +63,7 @@ def no_aa():
         ax.annotate('$a_x$', xy=(a_x, -0.5), xycoords='data',
                     xytext=(1,-1), textcoords='offset points', va='top',
                     color='red')
-    axes_model[0].set_ylabel('渲染结果')
+    axes_model[0].set_ylabel(R'渲染$\hat{\mathcal{I}}$')
 
     X_off = np.linspace(-0.5, x-0.5, 256)
     model_batch = np.where(k * (X - X_off[:, None, None]) - Y < 0.5, 1, 0)[..., None]
@@ -91,10 +91,10 @@ def no_aa():
     plot_to(2)
 
 
-    axes_loss[0].set_ylabel('损失函数')
+    axes_loss[0].set_ylabel(R'损失函数$\mathcal{L}$')
 
     axes_grad[0].yaxis.set_major_locator(ticker.MultipleLocator(1))
-    axes_grad[0].set_ylabel('梯度')
+    axes_grad[0].set_ylabel(R'梯度')
     axes_grad[0].set_xlabel('a) 无可见性梯度')
 
 
@@ -115,11 +115,11 @@ def no_aa():
         fig.add_artist(con)
 
     fig.align_ylabels([axes_target[0], axes_model[0], axes_loss[0], axes_grad[0]])
-    fig.savefig(FIG_PATH / 'no_aa.pgf')
+    fig.savefig(FIG_PATH / 'problem.pgf')
 
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
-    no_aa()
+    problem()
 
 if __name__ == '__main__':
     main()

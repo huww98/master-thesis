@@ -2,7 +2,7 @@ all: build/main.pdf
 
 -include build/main.pdf.deps
 
-build/main.pdf: main.tex build/figures/no_aa.pgf
+build/main.pdf: main.tex build/figures/problem.pgf
 	mkdir -p build
 	latexmk \
 		-use-make \
@@ -13,7 +13,7 @@ build/main.pdf: main.tex build/figures/no_aa.pgf
 		-xelatex \
 		$<
 
-build/figures/no_aa.pgf: draw.py
+build/figures/problem.pgf: draw.py
 	python3 $<
 
 clean:
