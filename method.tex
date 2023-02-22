@@ -1,4 +1,4 @@
-\chapter{适应未知背景的可微分渲染方法}
+\chapter{适应未知背景的可微分逆渲染方法}
 \label{chap:method}
 
 在将可微分渲染方法应用到3D人脸重建任务时，现有方法均未能充分利用可见性梯度。
@@ -52,6 +52,7 @@
 \begin{equation}
 \mathcal{L} = \left\| \hat{\mathcal{I}} - \mathcal{I} \right\|_1
 \text{。}
+\label{eq:loss_l1}
 \end{equation}
 
 \begin{figure}
@@ -77,6 +78,8 @@
 另一方面，在没有准确背景模型的前提向，可见性梯度则难以被利用。
 例如，在b)中，假设我们并不知道该场景的背景，因此直接假设其为全黑。
 但在本例中这个假设显然是不准确的。
+b)和c)的渲染方式与a)不同，其每个像素的颜色取决于前景模型覆盖该像素的面积的比例，并按面积比例线性混合前景和背景的颜色。
+这使得处于前景边缘处的像素的颜色成为了关于$a_x$的连续函数，即产生了所谓的可见性梯度。
 在此前提下，从图中可以观察到其损失函数呈递减的趋势，并未在期望的位置上形成极值。
 因此，该梯度也无法引导模型收敛到期望的位置。
 
@@ -88,10 +91,80 @@
 
 \section{面积归一化的像素损失函数}
 
-在分析中，不妨先将目标照片和渲染结果抽象为连续的场。
-为解决该问题，本文提出了一种面积归一化的像素损失函数
+在分析中，不妨先将目标照片$\hat{\mathcal{I}}$和渲染结果$\mathcal{I}$抽象为连续的颜色场$\mathbb{R}^2 \to \mathbb{R}^3$。
+于是公式\ref{eq:loss_l1}中的原始L1损失函数可改写为：
+\begin{equation}
+\mathcal{L} = \iint_{\mathcal{A}} \left\| \hat{\mathcal{I}} - \mathcal{I} \right\|_1 \mathrm{d}\sigma +
+\iint_{\mathcal{B}} \left\| \hat{\mathcal{I}} - \mathcal{I} \right\|_1 \mathrm{d}\sigma
+\text{，}
+\label{eq:loss_l1_area}
+\end{equation}
+其中，$\mathcal{A}$为渲染结果中前景模型覆盖的区域，$\mathcal{B}$为背景覆盖的区域。
+由此我们可以对图\ref{fig:problem}b中的现象进一步地解释：
+当前景模型的边界向右移动越过中点之后，由于不能很好地拟合背景，该损失函数的第一项开始上升，这是符合预期的。
+但是，由于采用的背景模型不准确，背景部分也存在一定误差，且由于背景区域面积下降，损失函数的第二项将会下降。
+这两项相互制衡，导致前景和背景模型“抢夺”处于交界处的像素。
+若背景模型的误差足够大，以至于使用前景模型来拟合背景区域反而占优势，则会出现如b)中的现象：前景模型将在优化中不断抢占背景的区域，从而无法收敛到期望的位置。
+在实际中这种情况是很有可能的，比如在3D人脸重建中，人脸的材质模型通常具有很高的自由度以拟合人脸的细节，这些自由度可能被误用于拟合背景。
+
+为解决在未知背景下的逆渲染问题，本文提出了一种面积归一化的像素损失函数：
+\begin{equation}
+\mathcal{L}_n = \frac{\iint_{\mathcal{A}} \left\| \hat{\mathcal{I}} - \mathcal{I} \right\|_1 \mathrm{d}\sigma}
+{\iint_{\mathcal{A}}\mathrm{d}\sigma}
+-\alpha\iint_{\mathcal{A}}\mathrm{d}\sigma
+\text{。}
+\end{equation}
+该损失函数仅在前景模型覆盖的区域内计算损失，因此不会受到背景模型的误差影响。
+该函数第一项为单位前景区域面积内的平均误差，第二项鼓励更大的前景区域，$\alpha$为一个超参数。
+
+\begin{figure}
+\centering
+\import{build/figures}{one_dim_loss.pgf}
+\caption{面积归一化的像素损失函数在一维的作用分析}
+\label{fig:one_dim_loss}
+\end{figure}
+
+为了更好地理解该损失函数的作用，本文将展示一个一维情况下的简单例子。
+如图\ref{fig:one_dim_loss}a所示，假设拟合目标包含前景和背景，为阶跃函数；前景模型为定义在前景区域$\mathcal{A}=(0,\theta)$的常函数，$\theta$为模型参数：
+\begin{align}
+\mathcal{I}(x) &= \begin{cases}
+    1   & x \leq 0.6 \\
+    0.1 & x > 0.6
+\end{cases}\\
+\hat{\mathcal{I}}(x) &= 0.8 \quad x < \theta
+\text{。}
+\end{align}
+在此定义下，我们可求出$\mathcal{L}_n(\theta)$中各项的解析表达式：
+\begin{align}
+\int_{\mathcal{A}} \left\| \hat{\mathcal{I}} - \mathcal{I} \right\|_1 \mathrm{d}\sigma
+&= \int_0^{\theta} \left| \hat{\mathcal{I}}(x) - \mathcal{I}(x) \right| \mathrm{d}x \\
+\int_{\mathcal{A}}\mathrm{d}\sigma &= \int_0^{\theta} \mathrm{d}x = \theta
+\text{。}
+\end{align}
+其函数图像如图\ref{fig:one_dim_loss}b、c、d所示。
+该函数第一项的分子为公式\ref{eq:loss_l1_area}中的第一项前景部分，显然该项是随着$\theta$单调递增的。
+由于没有了背景部分的制衡，单独使用该项将导致模型收敛到一个很小的区域。
+于是本文将该项以前景区域的面积进行归一化，即$\mathcal{L}_n$的第一项。
+若该模型的拟合误差在前景区域内是均匀分布的，则该项将会是一个常数，不会引导模型减小面积。
+而模型拟合背景区域的误差通常显著大于拟合前景，因此该项鼓励模型离开背景区域，从而减小平均误差。
+而在当前景区域小于期望时，$\mathcal{L}_n$的第二项将会鼓励模型增大面积，准确对齐到目标的边界上。如图d)所示，$\mathcal{L}_n$在$\theta=0.6$处取得极值，此时模型的前景区域正好对齐了目标的边界。
+同时，若有拟合误差在边缘处大于中心的情况，第二项也能提供一定的补偿。
+直观地，若拟合目标具有清晰的边界，且在边界处模型拟合前景的误差小于拟合背景的误差，则存在一个$\alpha$，使模型能精确对齐到该边界上。
+
+推广到二维的情况会稍微复杂，因为在二维下边界不止一个点，而边界的不同位置将会有不同情况。但根据以上分析，本章提出的损失函数最适用于以下场景：
+\begin{enumerate*}
+    \item 背景复杂且未知，但拟合目标具有清晰的边界；
+    \item 在前景物体边界附近的拟合误差不显著高于中心区域；
+    \item 在边界上，模型拟合前景的误差小于拟合背景的误差。
+\end{enumerate*}
+若在边界的个别区段上不能满足上述条件，则需要通过一定的平滑等正则化方法进行补偿。
+常见的情况比如：
+由于景深浅，照片中物体边缘有较大模糊；
+或者在部分位置碰巧前景与背景颜色相似等。
 
 \section{收缩\&扩展梯度}
+
+本节将介绍如何将上一节提出的，定义在连续空间的损失函数应用于由离散的像素组成的图像上，并最终实现为收缩和扩展两项梯度的形式。
 
 \section{实验结果}
 

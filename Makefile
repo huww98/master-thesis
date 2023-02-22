@@ -2,7 +2,7 @@ all: build/main.pdf
 
 -include build/main.pdf.deps
 
-build/main.pdf: main.tex build/figures/problem.pgf
+build/main.pdf: main.tex build/figures/problem.pgf build/figures/one_dim_loss.pgf
 	mkdir -p build
 	latexmk \
 		-use-make \
@@ -13,7 +13,7 @@ build/main.pdf: main.tex build/figures/problem.pgf
 		-xelatex \
 		$<
 
-build/figures/problem.pgf: draw.py
+build/figures/%.pgf: draw.py
 	python3 $<
 
 clean:

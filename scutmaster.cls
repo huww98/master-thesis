@@ -44,7 +44,7 @@
 }
 \setlength{\parskip}{0pt plus 2pt}
 
-\RequirePackage{enumitem}
+\RequirePackage[inline]{enumitem}
 \setlist{
     itemsep=0pt plus 2pt,
     parsep =0pt plus 2pt,

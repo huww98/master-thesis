@@ -117,9 +117,49 @@ def problem():
     fig.align_ylabels([axes_target[0], axes_model[0], axes_loss[0], axes_grad[0]])
     fig.savefig(FIG_PATH / 'problem.pgf')
 
+def one_dim_loss():
+    fig, (ax_func, ax_loss1, ax_lossn, ax_lossa) = \
+        plt.subplots(1, 4, figsize=(6.3, 1.5))
+    fig.set_layout_engine('compressed')
+    # hide y ticks
+    for ax in [ax_func, ax_loss1, ax_lossn, ax_lossa]:
+        ax.yaxis.set_major_locator(ticker.NullLocator())
+
+    theta = 0.7
+    ax_func.stairs([1, 0.1], [0, 0.6, 1], baseline=None, linestyle='--', label='$\mathcal{I}$')
+    ax_func.plot([0,theta], [0.8, 0.8], color='red', label='$\hat{\mathcal{I}}$')
+    ax_func.legend()
+
+    trans = transforms.blended_transform_factory(
+        ax_func.transData, ax_func.transAxes)
+    ax_func.add_artist(patches.ConnectionPatch(
+        xyA=(theta, 0.8), xyB=(theta, 0),
+        coordsA='data', coordsB=trans,
+        color='gray', linewidth=1, linestyle='--'
+    ))
+    ax_func.annotate(
+        R'$\theta$', xy=(theta, 0), xycoords='data',
+        xytext=(0,-1), textcoords='offset points', va='top', ha='center',
+        color='red')
+
+    ax_loss1.plot([0, 0.6, 1], [0, 0.2*0.6, 0.2*0.6+0.7*0.4], color='red')
+
+    ax_lossn.plot([0, 0.6, 1], [0.2, 0.2, 0.2*0.6+0.7*0.4], color='red')
+
+    alpha = 0.1
+    ax_lossa.plot([0, 0.6, 1], [0.2, 0.2 - 0.6*alpha, 0.2*0.6+0.7*0.4 - 1*alpha], color='red')
+
+    ax_func.set_xlabel(R'a) 目标与前景模型')
+    ax_loss1.set_xlabel(R'b) $\mathcal{L}_n(\theta)$的分子')
+    ax_lossn.set_xlabel(R'c) $\mathcal{L}_n(\theta)$的第一项')
+    ax_lossa.set_xlabel(R'd) $\mathcal{L}_n(\theta)$')
+
+    fig.savefig(FIG_PATH / 'one_dim_loss.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     problem()
+    one_dim_loss()
 
 if __name__ == '__main__':
     main()
