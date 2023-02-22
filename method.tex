@@ -166,9 +166,28 @@ b)和c)的渲染方式与a)不同，其每个像素的颜色取决于前景模�
 
 本节将介绍如何将上一节提出的，定义在连续空间的损失函数应用于由离散的像素组成的图像上，并最终实现为收缩和扩展两项梯度的形式。
 
+为了使损失函数成为关于渲染图像$\hat{\mathcal{I}}$的l连续函数，我们将图像渲染的过程定义为：
+\begin{equation}
+\hat{\mathcal{I}}(x,y;\theta) \to (\mathbf{c}, \sigma) \quad x,y \in \mathbb{Z}
+\text{。}
+\end{equation}
+其中$x,y$为像素坐标，$\theta$为前景模型的参数，$\mathbf{c}\in\mathbb{R}^3$为着色后的像素颜色，且对模型覆盖区域外的像素没有定义，$\sigma\in[0,1]$为前景模型覆盖该像素的覆盖率，即该像素中被模型覆盖的面积占其总面积的比例。
+$\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考虑其关于$\theta$的梯度。
+自然地，对于处在模型内部的像素$\sigma=1$，而对于模型外部的像素$\sigma=0$，
+仅当像素位于模型边界上时，$\frac{\partial\sigma}{\partial\theta}$才不为0，因此处于模型边界上的覆盖率$\sigma$是本节主要考虑的对象。
+需要注意的是，准确地求出每个像素的$\sigma$运算量较大，后文第\ref{sec:method_discuss}节将介绍一种实现方式。
+
+基于该定义，我们可以重新定义渲染图像与目标图像的距离为：
+\begin{equation}
+\left\|\hat{\mathcal{I}}(x,y;\theta) - \mathcal{I}(x,y)\right\| = \sigma\left\|\mathbf{c} - \mathcal{I}\right\|_1
+\text{。}
+\end{equation}
+将该定义带入公式\ref{eq:loss}中，得到：
+
 \section{实验结果}
 
 \section{讨论}
+\label{sec:method_discuss}
 
 L1损失函数的必要性
 
