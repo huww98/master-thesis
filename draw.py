@@ -156,10 +156,65 @@ def one_dim_loss():
 
     fig.savefig(FIG_PATH / 'one_dim_loss.pgf')
 
+def l2_loss():
+    fig, ((ax_target, ax_loss), (ax_model, ax_grad)) = \
+        plt.subplots(2, 2, figsize=(6.3, 2), sharex=True)
+    fig.set_layout_engine('compressed')
+
+    for ax in [ax_target, ax_model]:
+        for axis in [ax.xaxis, ax.yaxis]:
+            axis.set_minor_locator(HalfLocator())
+            axis.set_major_locator(ticker.MultipleLocator(1))
+        ax.grid(True, which='minor', axis='both')
+    # ax_model.sharey(ax_target)
+    # ax_model.yaxis.set_tick_params(labelleft=False)
+    ax_model.set_ylim(-.5, 2.5)
+
+    a_x = 2.1
+    x,y = 6,3
+    X = np.arange(x)
+    Y = np.arange(y)
+    X = X[None, :]
+    Y = Y[:, None]
+
+    target = X + 0 * Y < 2.5
+    ax_target.imshow(target, cmap='gray', interpolation='none', origin='lower')
+
+    n_sample = 256
+    sample = (np.arange(n_sample) + 0.5) / n_sample - 0.5
+    model = (X[..., None] + sample) - 0 * (Y[..., None]) < a_x
+    model = np.mean(model, axis=(-1))
+    ax_model.imshow(model, cmap='gray', interpolation='none', origin='lower')
+    ax_model.arrow(2.7, 0, 0.5, 0, color='red', linewidth=1, head_width=0.2, head_length=0.2)
+    ax_model.add_line(plt.Line2D([a_x, a_x], [-1, y], color='red', linewidth=1, clip_on=False))
+
+    X_off = np.linspace(-0.5, x-0.5, 256)
+    Xo = X_off[..., None, None, None]
+
+    model_batch = ((X[..., None] - Xo) + sample) - 0 * (Y[..., None]) < 0
+    model_batch = np.mean(model_batch, axis=(-1))
+    loss = np.mean((model_batch - target)**2, axis=(-1, -2))
+    ax_loss.plot(X_off, loss, color='red')
+
+    grad = np.gradient(loss, X_off)
+    ax_grad.plot(X_off, grad, color='red')
+    ax_grad.axhline(0, color=[0.7]*3, linewidth=1)
+
+    ax_target.set_ylabel(R'目标')
+    ax_model.set_ylabel(R'渲染结果')
+    ax_loss.set_ylabel(R'L2损失')
+    ax_grad.set_ylabel(R'梯度')
+
+    fig.align_ylabels([ax_target, ax_model])
+    fig.align_ylabels([ax_loss, ax_grad])
+
+    fig.savefig(FIG_PATH / 'l2_loss.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     problem()
     one_dim_loss()
+    l2_loss()
 
 if __name__ == '__main__':
     main()
