@@ -210,16 +210,75 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 \end{enumerate*}
 这些特点均和之前的连续空间定义的损失函数相同。
 
+虽然可以直接根据公式\ref{eq:loss_n_pixel}使用自动微分计算梯度，
+但其中的覆盖率$\sigma$仅在模型边界上才不为0，其余部分的$\sigma$并不需要保存到内存中。因此我们可以实现以下损失函数：
+\begin{equation}
+\tilde{\mathcal{L}}_n =
+\underbrace{\frac{1}{|\mathcal{A}|}\sum_{x,y|\sigma\in(0,1)} \sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1}_{\text{收缩}} -
+\underbrace{\left[\frac{\sum\left\| \mathbf{c} - \mathcal{I} \right\|_1}{|\mathcal{A}|^2}+\alpha\right]\sum_{x,y|\sigma\in(0,1)} \sigma}_{\text{扩展}}
+\text{，}
+\label{eq:loss_n_tilde}
+\end{equation}
+其中$|\mathcal{A}|$为优化开始时前景模型覆盖的面积，即$\sum_{x,y} \sigma$。
+由于基于梯度的逆渲染方法通常并不能处理大范围的模型移动，因此该项可以近似看作常数。
+该式也假设了边缘区域相对于整张图片来说是很小的。
+由于该式仅对边缘区域计算，其关于$\mathbf{c}$的梯度也可以忽略。
+注意此处列出的$\tilde{\mathcal{L}}_n$仅包含了模型与背景间的可见性相关梯度，在实际中需要配合通常的可微分渲染以计算颜色$\mathbf{c}$和其他已知背景的可见性梯度。
+
+根据以上分析，我们最终得到了一个附加的，仅定义在模型边缘处像素的损失函数。
+该函数的目的是在逆渲染的优化中，产生额外的收缩与扩张两项梯度，从而促进模型对齐到与未知的背景的边缘。
+
 \section{实验结果}
 
 \section{讨论}
 \label{sec:method_discuss}
 
-L1损失函数的必要性
+\paragraph{基于nvdiffrast的实现}
+本文基于上文所述理论，基于nvdiffrast\citep{nvdiffrast}中的抗锯齿模块进行了实现。
 
-模型裁减边缘的梯度处理
+\begin{figure}
+    \centering
+    \includegraphics{figures/antialias}
+    \caption[nvdiffrast抗锯齿模块的工作流程]{nvdiffrast抗锯齿模块的工作流程\citep{nvdiffrast}。}
+    \label{fig:aa}
+\end{figure}
 
-基于nvdiffrast\citep{nvdiffrast}的实现：
-其可见性梯度的计算是稀疏的，
-因此需要收缩扩展相互耦合；
-手动放大可见性梯度。
+为了完整性，这里简要介绍该模块的作用。
+如图\ref{fig:aa}所示，该模块修改过的像素为左图的B和右图的A。
+其中绿色的部分覆盖该像素的面积占整个像素面积的比例为覆盖率$\sigma$。
+记修改前绿色部分的像素值为$\mathbf{c}$，白色背景的像素值为$\mathcal{J}$。
+则修改后的像素值为：
+\begin{equation}
+\mathbf{c}' = \sigma\mathbf{c} + (1-\sigma)\mathcal{J}
+\text{。}
+\end{equation}
+
+基于该模块，本文使用目标图像$\mathcal{I}$作为背景进行渲染，即$\mathcal{J}=\mathcal{I}$，则公式\ref{eq:loss_n_tilde}中的收缩项可进一步表示为：
+\begin{equation}
+\sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1 =
+\left\| \sigma\mathbf{c} + (1-\sigma)\mathcal{I} - \mathcal{I} \right\|_1 =
+\left\| \mathbf{c}' - \mathcal{I} \right\|_1
+\text{。}
+\label{eq:impl_nvdiffrast}
+\end{equation}
+如此便可将收缩项中的$\sigma$完全交给该抗锯齿模块处理，且几乎没有额外的计算量。
+更好的是，在同一抗锯齿模块中还可以同时处理其他已知背景部分的可见性梯度，例如下巴和脖子间，鼻子和脸颊间。
+
+但nvdiffrast的覆盖率计算是稀疏的，即有部分$\sigma\in(0,1)$的像素无法被检测到，检测的概率和所用3D模型的网格密度有关。
+而扩张项的梯度与收缩项相互制衡，因此其梯度的计算必须与收缩项相互耦合，即他们稀疏的模式必须相同
+又注意到扩张项的梯度对于边缘的每一个像素是均匀的，因此本实现直接在反向传播时，对所有实际检测到$\sigma\in(0,1)$的像素添加上该项梯度。该方法也基本无额外内存和运算开销。
+
+nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过大，进而导致模型不能收敛到期望的位置，
+因此可能还需要手动将相关梯度乘以一个放大系数进行补偿。
+
+\paragraph{L1距离的必要性}
+本文中所有的讨论都是基于渲染图像与目标图像的L1距离的，之所以不使用L2或其他距离，主要是基于以下原因：
+\begin{itemize}
+\item 直接的原因是公式\ref{eq:impl_nvdiffrast}中$\sigma$和求距离的运算的交换需要L1距离。
+\item 根本的原因是使用L1距离才能实现与像素离散化的方式无关的梯度。如图\ref{fig:problem}c所示，虽然该例子中分辨率很低，但其损失函数的梯度仍然是非常平滑的，并未受到像素离散化的影响。
+图\ref{fig:l2_loss}展示了另一个使用L2损失的玩具实验的效果。
+可见其梯度在像素边缘处出现了明显的阶跃，这是由于像素离散化的原因。甚至在像素边缘处得到了为0的梯度，这显然是不合理的。
+\end{itemize}
+
+\paragraph{模型裁剪边缘的梯度处理}
+
