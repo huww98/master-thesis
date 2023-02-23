@@ -63,6 +63,7 @@
     拟合目标和渲染结果左侧白色为前景，右侧为背景。
     前景模型为以红线为边界的白色平面。
     横坐标为前景模型的平移量。
+    函数值为每像素均匀采样65536次的数值近似。
     a)离散采样，不计算可见性梯度；
     b)使用不准确的黑色背景模型计算可见性梯度，模型无法收敛到期望位置；
     c)理想情况下，在完全已知背景时的可见性梯度，模型能准确收敛至梯度为0的点。
@@ -113,6 +114,7 @@ b)和c)的渲染方式与a)不同，其每个像素的颜色取决于前景模�
 {\iint_{\mathcal{A}}\mathrm{d}\sigma}
 -\alpha\iint_{\mathcal{A}}\mathrm{d}\sigma
 \text{。}
+\label{eq:loss_n}
 \end{equation}
 该损失函数仅在前景模型覆盖的区域内计算损失，因此不会受到背景模型的误差影响。
 该函数第一项为单位前景区域面积内的平均误差，第二项鼓励更大的前景区域，$\alpha$为一个超参数。
@@ -177,12 +179,36 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 仅当像素位于模型边界上时，$\frac{\partial\sigma}{\partial\theta}$才不为0，因此处于模型边界上的覆盖率$\sigma$是本节主要考虑的对象。
 需要注意的是，准确地求出每个像素的$\sigma$运算量较大，后文第\ref{sec:method_discuss}节将介绍一种实现方式。
 
-基于该定义，我们可以重新定义渲染图像与目标图像的距离为：
+基于该定义，我们可以将面积归一化的像素损失函数的定义推广至由离散的像素表示的图像中：
 \begin{equation}
-\left\|\hat{\mathcal{I}}(x,y;\theta) - \mathcal{I}(x,y)\right\| = \sigma\left\|\mathbf{c} - \mathcal{I}\right\|_1
+\mathcal{L}_n = \frac{\sum_{x,y} \sigma \left\| \mathbf{c} - \mathcal{I} \right\|_1}
+{\sum_{x,y} \sigma} - \alpha \sum_{x,y} \sigma
+\text{。}
+\label{eq:loss_n_pixel}
+\end{equation}
+与之前定义在连续空间的公式\ref{eq:loss_n}相比，该定义假设了同一个像素范围内的图像颜色保持不变。
+
+下面将对该损失函数的梯度进行分析，以探寻其性质和可能的实现方式。
+对公式\ref{eq:loss_n_pixel}求导可得：
+\begin{equation}
+\frac{\partial\mathcal{L}_n}{\partial\theta} =
+\sum_{x,y}\left[
+    \frac{
+        \overbrace{\left\| \mathbf{c} - \mathcal{I} \right\|_1 \sum\sigma}^\text{收缩} -
+        \overbrace{\sum \sigma \left\| \mathbf{c} - \mathcal{I} \right\|_1}^\text{扩展}
+    }{\displaystyle\left(\sum\sigma\right)^2} - \alpha
+\right]\frac{\partial\sigma}{\partial\theta}
 \text{。}
 \end{equation}
-将该定义带入公式\ref{eq:loss}中，得到：
+注意在该推导中我们忽略了$\mathbf{c}$关于$\theta$的梯度，这项梯度由具体的着色模型确定，通常可以使用自动微分求得。
+从该推导结果中可以发现以下特点：
+\begin{enumerate*}
+    \item 该梯度仅在$\frac{\partial\sigma}{\partial\theta}$不为0时才不为0，因此在计算时仅需考虑处于前景模型边界上的像素；
+    \item 其大体可分为收缩和扩展两项，分别将鼓励模型向内收缩其边界和向外扩展其边界；
+    \item 当模型边界进入背景区域时，收缩梯度由于边界处误差较大而较大，但扩展梯度由于只依赖于平均误差，因此上升幅度较小，此时收缩梯度将占主导地位，鼓励模型离开背景区域；
+    \item 若拟合误差分布均匀，即$\left\|\mathbf{c} - \mathcal{I}\right\|_1$与$x,y$无关，则收缩和扩展两项梯度相等，此时$\alpha$将轻微地鼓励扩展，以对齐边界。
+\end{enumerate*}
+这些特点均和之前的连续空间定义的损失函数相同。
 
 \section{实验结果}
 
