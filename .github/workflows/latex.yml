@@ -8,6 +8,8 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Compile LaTeX document
+        env:
+          OPENCV_IO_ENABLE_OPENEXR: "1"
         run: make
 
       - uses: actions/upload-artifact@v3
