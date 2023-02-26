@@ -20,6 +20,24 @@
 由于该贴图中并无太多高频信息，本文仅使用了$256 \times 256$的分辨率。
 虽然似乎只有模型内部的贴图像素才会在渲染时被采样到，只需要计算模型内部的正值即可，但实际上，由于采样时使用双线性插值，外部的负值也会被采样到从而参与插值计算中.
 更准确的线性插值结果正是SDF的主要优势之一。
+从图中也可见，无论是SDF值还是其梯度在穿过边缘时都依然是平滑的。
+
+\begin{figure}
+\centering
+\begin{subfigure}[t]{3.3in}
+    \centering
+    \import{build/figures}{sdf.pgf}
+    \caption{SDF贴图}
+    \label{fig:sdf}
+\end{subfigure}
+\begin{subfigure}[t]{2.9in}
+    \centering
+    \import{build/figures}{sdf_grad.pgf}
+    \caption{SDF的梯度}
+    \label{fig:sdf_grad}
+\end{subfigure}
+\caption[SDF贴图可视化]{SDF贴图可视化。灰色线为模型中人为制造的边缘。(a)为SDF贴图，表示每个像素到最近边缘的距离，模型内部为正，外部为负；(b)为(a)的梯度向量，其x和y分量分别可视化为红色和绿色通道。}
+\end{figure}
 
 下面以nvdiffrast的工作方式为例说明该贴图的使用方式：
 nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如图\ref{fig:aa}），其中一个像素在模型内部，另一个像素在模型外部。
@@ -32,6 +50,13 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 \end{equation}
 此时应该忽略其产生的可见性梯度。其中$\delta=0.1$为人为限制的梯度的最大值，为避免小概率时过大梯度产生过于离谱的结果；$a=1.5$为梯度放大的系数，为避免偶发的由于精度不足导致的检测遗漏。
 这两个超参数的选择对最终结果的影响不大。
+
+\begin{figure}
+\centering
+\includegraphics[height=2.2in]{figures/debug_sdf}
+\caption[人为制造边缘分类效果]{人为制造边缘分类效果。绿色为人为制造的边缘；红色为与未知背景间的边缘；蓝色为模型内部相互遮挡产生的边缘。}
+\label{fig:sdf_result}
+\end{figure}
 
 该算法对边缘分类的效果如图\ref{fig:sdf_result}所示。
 可见算法将所有边缘分为了三类，
@@ -74,7 +99,7 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 相比于这些方法，本方法具有如下优势：
 \begin{enumerate}
 \item 渲染尺度无关：同样的模型区域在不同尺度下渲染呈现的尺度不同，因此屏蔽区域的选择可能需要随着尺度变化而改变。
-而本方法融入$d$了对像素坐标的梯度信息，因此不受尺度的影响。
+而本方法融入$d$了对像素坐标的梯度信息，是模型表面的一阶近似，因此不受尺度的影响。
 \item 有向性：即使是同一个像素，在其不同方向上也可能分别靠近不同种类的边缘。
 本方法通过考虑$d$的梯度方向，可以区分这些不同的边缘。
 \end{enumerate}

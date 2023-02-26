@@ -4,6 +4,7 @@ import matplotlib.patches as patches
 import matplotlib.transforms as transforms
 import numpy as np
 from pathlib import Path
+import cv2
 
 plt.rcParams["pgf.texsystem"] = "xelatex"
 plt.rcParams["pgf.preamble"] = R"\usepackage{ctex}"
@@ -210,11 +211,44 @@ def l2_loss():
 
     fig.savefig(FIG_PATH / 'l2_loss.pgf')
 
+def sdf():
+    img = cv2.imread('data/sdf.exr', cv2.IMREAD_UNCHANGED)[::-1, ..., ::-1]
+    border = np.load('data/border.npy')
+    sdf_f(img[..., 0], border)
+    sdf_grad(img[..., 1:], border)
+
+def sdf_f(img, border):
+    fig, ax = plt.subplots(1, 1, figsize=(3.3, 2.5))
+    fig.set_layout_engine('compressed')
+
+    ax_img = ax.imshow(img, interpolation='none', origin='lower', extent=[0, 1, 0, 1])
+    for b in border:
+        ax.add_line(plt.Line2D(b[:,0], b[:,1], color='gray', linewidth=1))
+    fig.colorbar(ax_img, ax=ax)
+
+    fig.savefig(FIG_PATH / 'sdf.pgf')
+
+def sdf_grad(img, border):
+    fig, ax = plt.subplots(1, 1, figsize=(2.9, 2.5))
+    fig.set_layout_engine('compressed')
+
+    img = (img + 1) / 2
+    h, w, c = img.shape
+    img3 = np.zeros((h, w, 3))
+    img3[..., :2] = img[..., :2]
+    ax.imshow(img3, interpolation='none', origin='lower', extent=[0, 1, 0, 1])
+    for b in border:
+        ax.add_line(plt.Line2D(b[:,0], b[:,1], color='gray', linewidth=1))
+    ax.yaxis.set_major_locator(ticker.NullLocator())
+
+    fig.savefig(FIG_PATH / 'sdf_grad.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     problem()
     one_dim_loss()
     l2_loss()
+    sdf()
 
 if __name__ == '__main__':
     main()
