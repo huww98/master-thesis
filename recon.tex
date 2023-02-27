@@ -59,7 +59,30 @@
 \paragraph{坐标系转换}
 然而，上一步骤预测时使用的投影矩阵是固定的，而输入的照片拍摄时使用的设备，人脸在照片中的尺寸，位置都有不同。
 为了获取尽可能精确的结果，本文试图从照片的元数据中提取相机实际参数，结合裁减的方式，计算更准确的投影矩阵，并将所涉及到的3D坐标在不同投影矩阵间进行转换，同时满足：3D点在图像上投影的位置基本不变；人脸模型在3D空间的尺度基本不变。
-\TODO{}
+
+此处投影矩阵定义为$3\times 3$的矩阵$\mathbf{P}$，其使用方式为$\mathbf{x} = \mathbf{P}\mathbf{X}$，
+其中$\mathbf{X}$为相机坐标系下的点的三维坐标，$(\mathbf{x}_x/\mathbf{x}_z,\mathbf{x}_y/\mathbf{x}_z)$即是该点投影到图像上的二维坐标。
+可从照片的EXIF中提取的信息包括相机焦距$f\in\mathbb{R}$，分辨率$\mathbf{r}\in\mathbb{R}^2$，传感器像素密度$\mathbf{\rho}\in\mathbb{R}^2$。
+根据这些信息，并假设该相机符合完美的小孔成像模型，则该相机的投影矩阵为：
+\begin{equation}
+    \mathbf{P}_\mathrm{cam} = \begin{bmatrix}
+        f\mathbf{\rho}_x & 0 & \frac{\mathbf{r}_x}{2} \\
+        0 & f\mathbf{\rho}_y & \frac{\mathbf{r}_y}{2} \\
+        0 & 0 & 1
+    \end{bmatrix}
+    \text{。}
+\end{equation}
+进一步地，记裁剪框的左下角和右上角坐标分别为$\mathbf{p}_\mathrm{min},\mathbf{p}_\mathrm{max}\in\mathbb{R}^2$，
+则裁剪框的投影矩阵为：
+\begin{equation}
+    \mathbf{P}_\mathrm{crop} = \begin{bmatrix}
+        \frac{\mathbf{r}_x}{\mathbf{p}_\mathrm{max,x}-\mathbf{p}_\mathrm{min,x}} & 0 & -\frac{\mathbf{r}_x\mathbf{p}_\mathrm{min,x}}{\mathbf{p}_\mathrm{max,x}-\mathbf{p}_\mathrm{min,x}} \\
+        0 & \frac{\mathbf{r}_y}{\mathbf{p}_\mathrm{max,y}-\mathbf{p}_\mathrm{min,y}} & -\frac{\mathbf{r}_y\mathbf{p}_\mathrm{min,y}}{\mathbf{p}_\mathrm{max,y}-\mathbf{p}_\mathrm{min,y}} \\
+        0 & 0 & 1
+    \end{bmatrix}
+    \text{。}
+\end{equation}
+\TODO{Check above equation}
 
 \section{模型裁剪边缘的梯度处理}
 可微分渲染在应用到人脸3D重建时有一个特殊的问题：人是一个很大的物体，而人脸重建的目标通常仅仅是人脸的这一小块区域。
