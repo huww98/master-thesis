@@ -96,13 +96,13 @@ def problem():
 
     axes_grad[0].yaxis.set_major_locator(ticker.MultipleLocator(1))
     axes_grad[0].set_ylabel(R'梯度')
-    axes_grad[0].set_xlabel('a) 无可见性梯度')
+    axes_grad[0].set_xlabel('(a) 无可见性梯度')
 
 
-    axes_grad[1].set_xlabel('b) 错误可见性梯度\n黑色背景模型')
+    axes_grad[1].set_xlabel('(b) 错误可见性梯度\n黑色背景模型')
 
 
-    axes_grad[2].set_xlabel('c) 理想可见性梯度\n理想背景模型')
+    axes_grad[2].set_xlabel('(c) 理想可见性梯度\n理想背景模型')
 
     for i in range(len(axes_model)):
         trans = transforms.blended_transform_factory(
@@ -150,10 +150,10 @@ def one_dim_loss():
     alpha = 0.1
     ax_lossa.plot([0, 0.6, 1], [0.2, 0.2 - 0.6*alpha, 0.2*0.6+0.7*0.4 - 1*alpha], color='red')
 
-    ax_func.set_xlabel(R'a) 目标与前景模型')
-    ax_loss1.set_xlabel(R'b) $\mathcal{L}_n(\theta)$的分子')
-    ax_lossn.set_xlabel(R'c) $\mathcal{L}_n(\theta)$的第一项')
-    ax_lossa.set_xlabel(R'd) $\mathcal{L}_n(\theta)$')
+    ax_func.set_xlabel(R'(a) 目标与前景模型')
+    ax_loss1.set_xlabel(R'(b) $\mathcal{L}_n(\theta)$的分子')
+    ax_lossn.set_xlabel(R'(c) $\mathcal{L}_n(\theta)$的第一项')
+    ax_lossa.set_xlabel(R'(d) $\mathcal{L}_n(\theta)$')
 
     fig.savefig(FIG_PATH / 'one_dim_loss.pgf')
 
