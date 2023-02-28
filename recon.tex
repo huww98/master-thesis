@@ -61,28 +61,66 @@
 为了获取尽可能精确的结果，本文试图从照片的元数据中提取相机实际参数，结合裁减的方式，计算更准确的投影矩阵，并将所涉及到的3D坐标在不同投影矩阵间进行转换，同时满足：3D点在图像上投影的位置基本不变；人脸模型在3D空间的尺度基本不变。
 
 此处投影矩阵定义为$3\times 3$的矩阵$\mathbf{P}$，其使用方式为$\mathbf{x} = \mathbf{P}\mathbf{X}$，
-其中$\mathbf{X}$为相机坐标系下的点的三维坐标，$(\mathbf{x}_x/\mathbf{x}_z,\mathbf{x}_y/\mathbf{x}_z)$即是该点投影到图像上的二维坐标。
+其中$\mathbf{X}$为相机坐标系下的点的三维坐标，$(\mathbf{x}_x/\mathbf{x}_z,\mathbf{x}_y/\mathbf{x}_z)\in[-1,1]^2$即是该点投影到图像上的二维坐标。
+注意此处的图像坐标系与图像分辨率无关，这与OpenGL等渲染库的约定一致，且便于后续在不同投影矩阵转换时的计算。
+但与OpenGL中常用的投影矩阵形式不同，为了简化推导，此处的投影矩阵并未投影深度。
 可从照片的EXIF中提取的信息包括相机焦距$f\in\mathbb{R}$，分辨率$\mathbf{r}\in\mathbb{R}^2$，传感器像素密度$\mathbf{\rho}\in\mathbb{R}^2$。
 根据这些信息，并假设该相机符合完美的小孔成像模型，则该相机的投影矩阵为：
 \begin{equation}
     \mathbf{P}_\mathrm{cam} = \begin{bmatrix}
-        f\mathbf{\rho}_x & 0 & \frac{\mathbf{r}_x}{2} \\
-        0 & f\mathbf{\rho}_y & \frac{\mathbf{r}_y}{2} \\
+        \frac{2f\mathbf{\rho}_x}{\mathbf{r}_x} & 0 & 0 \\
+        0 & \frac{2f\mathbf{\rho}_y}{\mathbf{r}_x} & 0 \\
         0 & 0 & 1
     \end{bmatrix}
     \text{。}
 \end{equation}
-进一步地，记裁剪框的左下角和右上角坐标分别为$\mathbf{p}_\mathrm{min},\mathbf{p}_\mathrm{max}\in\mathbb{R}^2$，
-则裁剪框的投影矩阵为：
+进一步地，裁减操作可以看作是平移和缩放操作的组合，记裁剪框的左下角和右上角坐标分别为$\mathbf{p}_\mathrm{min},\mathbf{p}_\mathrm{max}\in[-1,1]^2$，
+则裁剪框内区域的投影矩阵为：
 \begin{equation}
     \mathbf{P}_\mathrm{crop} = \begin{bmatrix}
-        \frac{\mathbf{r}_x}{\mathbf{p}_\mathrm{max,x}-\mathbf{p}_\mathrm{min,x}} & 0 & -\frac{\mathbf{r}_x\mathbf{p}_\mathrm{min,x}}{\mathbf{p}_\mathrm{max,x}-\mathbf{p}_\mathrm{min,x}} \\
-        0 & \frac{\mathbf{r}_y}{\mathbf{p}_\mathrm{max,y}-\mathbf{p}_\mathrm{min,y}} & -\frac{\mathbf{r}_y\mathbf{p}_\mathrm{min,y}}{\mathbf{p}_\mathrm{max,y}-\mathbf{p}_\mathrm{min,y}} \\
+        \frac{2}{\mathbf{p}_\mathrm{max,x}-\mathbf{p}_\mathrm{min,x}} & 0 & 0 \\
+        0 & \frac{2}{\mathbf{p}_\mathrm{max,y}-\mathbf{p}_\mathrm{min,y}} & 0 \\
         0 & 0 & 1
-    \end{bmatrix}
+    \end{bmatrix}\begin{bmatrix}
+        1 & 0 & -\frac{\mathbf{p}_\mathrm{min,x}+\mathbf{p}_\mathrm{max,x}}{2} \\
+        0 & 1 & -\frac{\mathbf{p}_\mathrm{min,y}+\mathbf{p}_\mathrm{max,y}}{2} \\
+        0 & 0 & 1
+    \end{bmatrix}\mathbf{P}_\mathrm{cam}
     \text{。}
 \end{equation}
-\TODO{Check above equation}
+
+以下将介绍具体如何将3D模型从投影矩阵$\mathbf{P}_\mathrm{d}$转换到$\mathbf{P}_\mathrm{crop}$下。
+该转换分为两步，将模型关于相机旋转以保持模型中心点投影位置不变，再将模型向朝向或远离相机的方向平移以保持模型的投影尺度不变。
+这两步操作均为刚性变换，因此可以保证模型在3D空间的尺度不变。
+
+首先求解旋转，该步骤主要用于平衡不同照片中人脸裁剪框位置的差异。
+记3D网格模型$M=\{\mathbf{v}_i\}_i$为三维顶点的集合，其中$\mathbf{v}_i\in\mathbb{R}^3$为神经网络预测的顶点的三维坐标。
+记$\bar{\mathbf{v}} = \frac{1}{|M|}\sum_{i=1}^{|M|}\mathbf{v}_i$为模型中心点的三维坐标。
+若要该中心点的投影位置不变，则该点应位于新坐标系下的一条以原点为起点的射线上，该射线上另一点的坐标为$\bar{\mathbf{v}}' = \mathbf{P}_\mathrm{crop}^{-1}\mathbf{P}_\mathrm{d}\bar{\mathbf{v}}$。
+因此，所需旋转的旋转轴为$\bar{\mathbf{v}}' \times \bar{\mathbf{v}}$，
+旋转角为$\arccos\left(\frac{\bar{\mathbf{v}}'\cdot\bar{\mathbf{v}}}{\|\bar{\mathbf{v}}'\|\|\bar{\mathbf{v}}\|}\right)$。
+可由罗德里格斯公式计算其对应旋转矩阵$\mathbf{R}$，类似公式\ref{eq:rodrigues}，此处不再赘述。
+旋转后的中心点坐标记为$\bar{\mathbf{v}}'' = \mathbf{R}\bar{\mathbf{v}}$。
+
+然后可以求解所需平移，该步骤主要用于平衡不同相机的焦距参数的差异。
+记平移后的中心点位置为$\bar{\tilde{\mathbf{v}}} = s\bar{\mathbf{v}}''$，
+$s$表示平移前后该点据相机的距离比例。
+若要模型投影尺度不变，则$s$应满足如下方程：对于三维坐标$\mathbf{x}=[x,y,z]^\mathsf{T}$
+\begin{equation}
+    \left.\nabla_{x,y}\left(\frac{\mathbf{P}_\mathrm{crop}\mathbf{x}}{z}\right)\right|_{\mathbf{x}=\bar{\tilde{\mathbf{v}}}} =
+    \left.\nabla_{x,y}\left(\frac{\mathbf{P}_\mathrm{d}\mathbf{x}}{z}\right)\right|_{\mathbf{x}=\bar{\mathbf{v}}}
+    \text{。}
+\end{equation}
+该方程是超定方程，但由于这里使用的投影矩阵均是按相同比例处理x和y轴的，因此应当能解出一致的$s$。在实践中可以使用最小二乘法求解。
+
+在得到针对模型中心点的变换参数后，将这些变换应用到整个模型即可完成坐标系的转换。
+转换后的顶点坐标为：
+\begin{equation}
+    \tilde{\mathbf{v}}_i = \mathbf{R}\mathbf{v}_i + \left( \bar{\tilde{\mathbf{v}}} - \bar{\mathbf{v}}'' \right)
+    \text{，}
+\end{equation}
+转换后的模型即为$\tilde{M}=\{\tilde{\mathbf{v}}_i\}_i$。
+图\ref{fig:crop}用一个玩具实验展示了转换前后的模型，以及该转换的必要性。
 
 \section{模型裁剪边缘的梯度处理}
 可微分渲染在应用到人脸3D重建时有一个特殊的问题：人是一个很大的物体，而人脸重建的目标通常仅仅是人脸的这一小块区域。
