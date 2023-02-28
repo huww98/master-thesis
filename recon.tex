@@ -31,6 +31,7 @@
 后文将对该流程中的每个步骤进行详细介绍。
 
 \section{基于神经网络回归的模型初始化}
+\label{sec:recon_init}
 
 基于可微分渲染的逆渲染方法通常难以处理较大的姿态变化，它容易在复杂的非线性优化中陷入局部最优。
 因而之前很多方法均使用了2D人脸关键点检测结果以提供大范围的，较为平滑的监督信号。
@@ -123,6 +124,8 @@ $s$表示平移前后该点据相机的距离比例。
 图\ref{fig:crop}用一个玩具实验展示了转换前后的模型，以及该转换的必要性。
 
 \section{模型裁剪边缘的梯度处理}
+\label{sec:recon_sdf}
+
 可微分渲染在应用到人脸3D重建时有一个特殊的问题：人是一个很大的物体，而人脸重建的目标通常仅仅是人脸的这一小块区域。
 所以通常在人脸重建中用于逆渲染的模型都是裁剪过的，只包含人脸的部分，因此具有一些人为制造的边缘。
 这些边缘在照片中并不存在，但第\ref{chap:method}章提出的方法在应用到人脸时却也会在这些边缘产生相关梯度，由于并无对应的边缘可供对齐，这些梯度将导致模型过度扩展，影响最终收敛的效果。
@@ -221,9 +224,66 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 本方法通过考虑$d$的梯度方向，可以区分这些不同的边缘。
 \end{enumerate}
 
-\section{照片到纹理空间信息迁移}
+\section{基于可微分渲染的逆渲染优化}
 
-\section{基于可微分渲染的3D重建}
+\begin{figure}
+\centering
+\includegraphics[width=\linewidth]{figures/recon_render}
+\caption{渲染的整体流程}
+\label{fig:recon_render}
+\end{figure}
+
+基于第\ref{sec:recon_init}节计算的3D模型、纹理、环境光照估计作为初始化，
+以及第\ref{chap:method}章和第\ref{sec:recon_sdf}节提出的方法，
+本节具体将介绍如何将它们结合nvdiffrast\citep{nvdiffrast}实际应用于人脸3D模型的逆渲染过程中。
+渲染的整体流程如图\ref{fig:recon_render}所示。
+逆渲染的目标即是通过梯度下降优化的方式，优化模型参数，使得渲染结果与照片尽可能接近。
+以下将具体介绍该流程中的各个步骤。
+
+\paragraph{顶点计算和投影}
+首先本文实现了类似传统渲染引擎中的顶点着色器的计算。
+这个步骤输入模型的各种数据和参数，输出该模型每个顶点在裁切空间中的坐标，以及定义在每个顶点上的一些附加属性。
+本文由是使用的着色模型较为简单，因此附加属性仅包括法线，颜色和纹理坐标。
+
+首先，本文依据类似3DMM模型的方式计算其每个顶点的位置和颜色：
+\begin{align}
+\mathbf{S} &= \bar{\mathbf{S}} + \mathbf{B}_\mathrm{id}\mathbf{\alpha} + \mathbf{B}_\mathrm{exp}\mathbf{\beta} + \mathbf{S}_\mathrm{off}\\
+\mathbf{T} &= \bar{\mathbf{T}} + \mathbf{B}_\mathrm{tex}\mathbf{\delta}
+\text{。}
+\end{align}
+其中$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$分别是平均的人脸形状和纹理，
+$\mathbf{B}_\mathrm{id}$、$\mathbf{B}_\mathrm{exp}$和$\mathbf{B}_\mathrm{tex}$分别是身份、表情和纹理的PCA基，并预先根据其对应的标准差进行了放大。
+与之前方法\citep{deep3d,GuoZCJZ19}保持一致，本文使用了BFM 2009模型\citep{BFM}中的身份和纹理基，以及Face Warehouse\citep{FaceWarehouse}中的表情基。
+$\mathbf{\alpha}$、$\mathbf{\beta}$和$\mathbf{\delta}$分别是身份、表情和纹理的系数，是所需优化的参数。
+与之前的方法不同，本文使用了\ref{sec:recon_init}节中预测的系数来计算$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$，从而利用神经网络中的知识作为逆渲染优化的先验。
+此外，本文还额外对顶点位置增加了一个偏移量$\mathbf{S}_\mathrm{off}$，以允许其偏离PCA产生的低维空间，拟合更加多样的人脸形状，从而充分发挥逆渲染用于监督的信息量大的优势。
+
+在获得顶点位置后，还需将其变换到相机坐标系并投影到裁切空间中，以便后续的光栅化。投影后顶点在裁切空间中的坐标为：
+\begin{equation}
+\mathbf{S}_\mathrm{clip} = \mathbf{P}_\mathrm{crop}\mathbf{M}_\mathrm{c}\mathbf{M}_\mathrm{t}\mathbf{M}_\mathrm{d}\mathbf{S}
+\text{，}
+\end{equation}
+其中$\mathbf{M}_\mathrm{c}\in \mathrm{SE(3)}$是可优化的参数。
+该步骤在之前第\ref{sec:recon_init}节神经网络预测和坐标系转换后的结果的基础上，再增加了一个参数以供逆渲染过程进一步优化。
+\TODO{更新前面的定义}
+
+
+除了顶点位置和颜色，本文还计算了每个顶点的法线。
+通行的做法是根据顶点周围的三角形的形状，对三角形的发现做加权平均。
+但由于BFM模型的网格较为密集且均匀，简单起见，本文直接使用了与每个顶点相邻的多个三角形的法线平均值作为该顶点的法线。即第$i$个顶点的法线为：
+\begin{equation}
+\mathbf{N}_i \propto \sum_{j\in\mathcal{N}_i}\mathbf{N}_{tri,j} \quad
+\|\mathbf{N}_i\| = 1
+\text{，}
+\end{equation}
+其中$\mathcal{N}_i$是与顶点$i$相邻的三角形的集合，$\mathbf{N}_{tri,j}$是三角形$j$的法线。
+之所以不直接使用每个三角形的法线进行着色（即如图\ref{fig:sdf_result}中的着色效果），
+是希望在图像中法线方向是平滑变化的，不会在三角形交界处出现明显的跳变。
+
+\paragraph{光栅化}
+该步骤直接使用了
+
+\section{照片到纹理空间信息迁移}
 
 \section{实验结果}
 
