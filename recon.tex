@@ -21,7 +21,7 @@
     \label{fig:recon_overall}
 \end{figure}
 
-为完成该人脸重建的目标，本方法将输出一个基于预定义的拓扑结构的三角形网格，以及其对应的高清纹理贴图，该图的颜色表征人脸表面的光线反射率。
+为完成该人脸重建的目标，本方法将输出一个基于预定义的拓扑结构的三角形网格，以及其对应的高清纹理贴图，该图的像素中编码了人脸表面的光线反射率。
 其总体流程如\ref{fig:recon_overall}所示。
 本文首先利用现有方法\citep{deep3d}根据输入的照片估计3DMM人脸模型的形变系数，环境光照，人脸姿态等信息。
 以此作为初始化，本文利用第\ref{chap:method}章提出的方法进一步将模型精确对齐到输入照片中，并进一步优化对环境光照的估计。
@@ -246,9 +246,9 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 \paragraph{顶点计算和投影}
 首先本文实现了类似传统渲染引擎中的顶点着色器的计算。
 这个步骤输入模型的各种数据和参数，输出该模型每个顶点在裁切空间中的坐标，以及定义在每个顶点上的一些附加属性。
-本文由是使用的着色模型较为简单，因此附加属性仅包括法线，颜色和纹理坐标。
+本文由是使用的着色模型较为简单，因此附加属性仅包括法线，反射率和纹理坐标。
 
-首先，本文依据类似3DMM模型的方式计算其每个顶点的位置和颜色：
+首先，本文依据类似3DMM模型的方式计算其每个顶点的位置和反射率：
 \begin{align}
 \mathbf{S} &= \bar{\mathbf{S}} +
 \mathbf{B}_\mathrm{id}\mathbf{\alpha}_\mathrm{id} +
@@ -258,9 +258,9 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 \mathbf{B}_\mathrm{tex}\mathbf{\alpha}_\mathrm{tex}
 \text{。}
 \end{align}
-其中$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$分别是平均的人脸形状和纹理，
-$\mathbf{B}_\mathrm{id}$、$\mathbf{B}_\mathrm{exp}$和$\mathbf{B}_\mathrm{tex}$分别是身份、表情和纹理的PCA基，并预先根据其对应的标准差进行了放大。
-与之前方法\citep{deep3d,GuoZCJZ19}保持一致，本文使用了BFM 2009模型\citep{BFM}中的身份和纹理基，以及从Face Warehouse\citep{FaceWarehouse}中创建的表情基。
+其中$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$分别是平均的人脸形状和反射率，
+$\mathbf{B}_\mathrm{id}$、$\mathbf{B}_\mathrm{exp}$和$\mathbf{B}_\mathrm{tex}$分别是身份、表情和反射率的PCA基，并预先根据其对应的标准差进行了放大。
+与之前方法\citep{deep3d,GuoZCJZ19}保持一致，本文使用了BFM 2009模型\citep{BFM}中的身份和反射率基，以及从Face Warehouse\citep{FaceWarehouse}中创建的表情基。
 $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha}_\mathrm{tex}$分别是身份、表情和纹理的系数，是所需优化的参数。
 与之前的方法不同，本文使用了\ref{sec:recon_init}节中预测的系数来计算$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$，从而利用神经网络中的知识作为逆渲染优化的先验。
 此外，本文还额外对顶点位置增加了一个偏移量$\mathbf{S}_\mathrm{off}$，以允许其偏离PCA产生的低维空间，拟合更加多样的人脸形状，从而充分发挥逆渲染用于监督的信息量大的优势。
@@ -274,24 +274,82 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 该步骤在之前第\ref{sec:recon_init}节神经网络预测（$\mathbf{M}_\mathrm{d}$）和坐标系转换（$\mathbf{M}_\mathrm{t}$）后的结果的基础上，再增加了一个参数以给逆渲染进一步优化的空间。
 需注意，此处的投影矩阵$\mathbf{P}_\mathrm{crop}$需要选取合适的近截平面和远截平面，扩展为$4\times 4$的投影矩阵，以将深度也投影在$[-1,1]$范围内，支持下一步光栅化的深度缓冲和深度测试算法。
 
-除了顶点位置和颜色，本文还计算了每个顶点的法线。
+除了顶点位置和反射率，本文还计算了每个顶点的法线。
 通行的做法是根据顶点周围的三角形的形状，对三角形的发现做加权平均。
 但由于BFM模型的网格较为密集且均匀，简单起见，本文直接使用了与每个顶点相邻的多个三角形的法线平均值作为该顶点的法线。即第$i$个顶点的法线为：
 \begin{equation}
-\mathbf{N}_i \propto \sum_{j\in\mathcal{N}_i}\mathbf{N}_{tri,j} \quad
-\|\mathbf{N}_i\| = 1
+\mathbf{n}_i \propto \sum_{j\in\mathcal{N}_i}\mathbf{n}_{tri,j} \quad
+\|\mathbf{n}_i\| = 1
 \text{，}
 \end{equation}
-其中$\mathcal{N}_i$是与顶点$i$相邻的三角形的集合，$\mathbf{N}_{tri,j}$是三角形$j$的法线。
+其中$\mathcal{N}_i$是与顶点$i$相邻的三角形的集合，$\mathbf{n}_{tri,j}$是三角形$j$的法线。
 之所以不直接使用每个三角形的法线进行着色（即如图\ref{fig:sdf_result}中的着色效果），
 是希望在图像中法线方向是平滑变化的，不会在三角形交界处出现明显的跳变。
 
 \paragraph{光栅化}
-该步骤直接使用了nvdiffrast中的光栅化算法，
-其输入为顶点的裁切空间坐标$\mathbf{S}_\mathrm{clip}$和顶点索引，
-输出为每个像素的三角形索引和其在该三角形中的重心坐标，
-以及重心坐标对图像像素坐标的梯度。
+光栅化的目的是建立3D网格中的三角形和图像中的像素的对应关系。
+该步骤本文直接使用了nvdiffrast中的光栅化模块，
+其输入为顶点的裁切空间坐标$\mathbf{S}_\mathrm{clip}$和每个三角形的顶点索引，
+输出为每个像素的三角形索引和其在该三角形中的重心坐标$\mathbf{w}$，
+以及重心坐标对图像像素坐标的梯度$\frac{\partial\mathbf{w}}{\partial\mathbf{x}}$。
 
+\paragraph{插值}
+插值步骤根据光栅化中建立的对应关系，将定义在顶点上的属性（如上述反射率、法线、纹理坐标）插值到像素上，以得到定义在像素上的相同属性。
+同时，根据重心坐标对图像像素坐标的梯度，也可以计算出对应的属性梯度。
+本文也直接使用了nvdiffrast中的插值模块。
+
+\paragraph{纹理采样}
+纹理采样步骤根据上述插值得到的纹理坐标$(u,v)$，从纹理图中获取该坐标下的属性值，以得到定义在像素上的相同属性。
+本文同样也直接使用了nvdiffrast中的纹理采样模块。
+本文所使用的纹理仅有如第\ref{sec:recon_sdf}节中所描述的SDF贴图。
+对该贴图采样过程将得到定义在像素上的距离$d$以及其关于纹理坐标$(u,v)$的梯度$\frac{\partial d}{\partial u}$和$\frac{\partial d}{\partial v}$。
+
+\paragraph{片元着色}
+片元着色的目的是根据光照模型和上述各种属性计算每个像素最终的颜色，即其向相机方向反射的光线的能量分布。
+本文使用二阶球谐函数（SH）来表示光照，并定义在YUV色彩空间上。该模型每个通道使用9个参数，共27个参数即可近似表示低频环境光照，
+具体计算方式是\citet{sh_diffuse}的推导结果的实现。
+对于每个像素，其各个方向的总入射光强为：
+\begin{gather}
+    \begin{aligned}
+        \mathbf{E}_i(\mathbf{n}) &=
+        c_1 L_{22}(\mathbf{n}_x^2-\mathbf{n}_y^2) +
+        c_3 L_{20}\mathbf{n}_z^2 +
+        c_4 L_{00} -
+        c_5 L_{20} \\
+        &+ 2c_1(L_{2-2}\mathbf{n}_x\mathbf{n}_y +
+                L_{21}\mathbf{n}_x\mathbf{n}_z +
+                L_{2-1}\mathbf{n}_y\mathbf{n}_z)
+         + 2c_2(L_{11}\mathbf{n}_x +
+                L_{1-1}\mathbf{n}_y +
+                L_{10}\mathbf{n}_z) \\
+        \end{aligned} \\
+        c_1 = 0.429043 \quad
+        c_2 = 0.511664 \quad
+        c_3 = 0.743125 \quad
+        c_4 = 0.886227 \quad
+        c_5 = 0.247708 \notag
+        \text{，}
+\end{gather}
+其中$L$是二阶球谐函数的系数，$\mathbf{n}$插值后归一化的法向量，光强对每个通道$i$分别计算。
+具体推导过程较为复杂，感兴趣的读者可参考引用的原论文。
+这些参数将使用第\ref{sec:recon_init}节中介绍的神经网络的预测结果初始化，但由于色彩空间和其他定义方式有区别，此处需要进行一些转换。
+
+着色时本文仅考虑了朗伯特漫反射模型，即反射光强正比于总入射光强，其比例则直接建模为上述反射率$\mathbf{\rho}$。
+因此每个像素最终着色的结果为：
+\begin{equation}
+    \mathbf{C} = \mathbf{\rho} \mathbf{E} \text{。}
+\end{equation}
+
+\paragraph{抗锯齿}
+本文使用了nvdiffrast中的抗锯齿模块。
+在该实现中，抗锯齿除了能得到观感更好的图像，其最主要的作用是在反向传播时计算物体间相互遮挡造成的可见性相关梯度。
+本文对nvdiffrast中的抗锯齿模块进行了较多修改，
+其中包括第\ref{chap:method}章中介绍的应对未知背景计算梯度的方法，
+第\ref{sec:method_discuss}节中介绍的应对nvdiffrast梯度稀疏的缓解措施，
+以及第\ref{sec:recon_sdf}节中介绍的使用SDF贴图对边缘分类的方法。
+
+\paragraph{损失函数}
+\TODO{}
 
 \section{照片到纹理空间信息迁移}
 
