@@ -50,12 +50,12 @@
 若裁剪框超出像素边缘则填充黑色，以保持人脸在图像中心。
 然后$\mathcal{I}_s$将输入到\citet{deep3d}开源的软件中，
 它将输出BFM模型\citep{BFM}的
-人脸身份系数$\mathbf{\alpha}\in\mathbb{R}^{80}$，
-人脸表情系数$\mathbf{\beta}\in\mathbb{R}^{64}$，
-人脸纹理系数$\mathbf{\delta}\in\mathbb{R}^{80}$，
-人脸姿态$\mathbf{p}\in\mathrm{SE(3)}$，
+人脸身份系数$\mathbf{\alpha}_\mathrm{id}\in\mathbb{R}^{80}$，
+人脸表情系数$\mathbf{\alpha}_\mathrm{exp}\in\mathbb{R}^{64}$，
+人脸纹理系数$\mathbf{\alpha}_\mathrm{tex}\in\mathbb{R}^{80}$，
+人脸姿态$\mathbf{M}_\mathrm{d}\in\mathrm{SE(3)}$，
 环境球谐光照系数$\mathbf{\gamma}\in\mathbb{R}^{9\times 3}$。
-其中涉及到的3D坐标均可通过约定的投影矩阵$\mathbf{P}_\mathrm{d}$投影回图像平面，并与输入图像$\mathcal{I}_s$较好地对齐。
+其中涉及到的相机坐标系的3D坐标均可通过约定的投影矩阵$\mathbf{P}_\mathrm{d}$投影回图像平面，并与输入图像$\mathcal{I}_s$较好地对齐。
 
 \paragraph{坐标系转换}
 然而，上一步骤预测时使用的投影矩阵是固定的，而输入的照片拍摄时使用的设备，人脸在照片中的尺寸，位置都有不同。
@@ -114,13 +114,16 @@ $s$表示平移前后该点据相机的距离比例。
 \end{equation}
 该方程是超定方程，但由于这里使用的投影矩阵均是按相同比例处理x和y轴的，因此应当能解出一致的$s$。在实践中可以使用最小二乘法求解。
 
-在得到针对模型中心点的变换参数后，将这些变换应用到整个模型即可完成坐标系的转换。
-转换后的顶点坐标为：
+在得到针对模型中心点的变换参数后，可将其合成一个变换矩阵以应用到整个模型的任意顶点上。
+变换矩阵为：
 \begin{equation}
-    \tilde{\mathbf{v}}_i = \mathbf{R}\mathbf{v}_i + \left( \bar{\tilde{\mathbf{v}}} - \bar{\mathbf{v}}'' \right)
+    \mathbf{M}_\mathrm{t} = \begin{bmatrix}
+        \mathbf{I} & \bar{\tilde{\mathbf{v}}} - \bar{\mathbf{v}}'' \\
+        \mathbf{0} & 1
+    \end{bmatrix}\mathbf{R}
     \text{，}
 \end{equation}
-转换后的模型即为$\tilde{M}=\{\tilde{\mathbf{v}}_i\}_i$。
+转换后的模型即为$\tilde{M}=\{\mathbf{M}_\mathrm{t}\mathbf{v}_i\}_i$，其中$\mathbf{v}_i$需在最后一维上加上1以扩展为齐次坐标。
 图\ref{fig:crop}用一个玩具实验展示了转换前后的模型，以及该转换的必要性。
 
 \section{模型裁剪边缘的梯度处理}
@@ -247,26 +250,29 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 
 首先，本文依据类似3DMM模型的方式计算其每个顶点的位置和颜色：
 \begin{align}
-\mathbf{S} &= \bar{\mathbf{S}} + \mathbf{B}_\mathrm{id}\mathbf{\alpha} + \mathbf{B}_\mathrm{exp}\mathbf{\beta} + \mathbf{S}_\mathrm{off}\\
-\mathbf{T} &= \bar{\mathbf{T}} + \mathbf{B}_\mathrm{tex}\mathbf{\delta}
+\mathbf{S} &= \bar{\mathbf{S}} +
+\mathbf{B}_\mathrm{id}\mathbf{\alpha}_\mathrm{id} +
+\mathbf{B}_\mathrm{exp}\mathbf{\alpha}_\mathrm{exp} +
+\mathbf{S}_\mathrm{off}\\
+\mathbf{T} &= \bar{\mathbf{T}} +
+\mathbf{B}_\mathrm{tex}\mathbf{\alpha}_\mathrm{tex}
 \text{。}
 \end{align}
 其中$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$分别是平均的人脸形状和纹理，
 $\mathbf{B}_\mathrm{id}$、$\mathbf{B}_\mathrm{exp}$和$\mathbf{B}_\mathrm{tex}$分别是身份、表情和纹理的PCA基，并预先根据其对应的标准差进行了放大。
-与之前方法\citep{deep3d,GuoZCJZ19}保持一致，本文使用了BFM 2009模型\citep{BFM}中的身份和纹理基，以及Face Warehouse\citep{FaceWarehouse}中的表情基。
-$\mathbf{\alpha}$、$\mathbf{\beta}$和$\mathbf{\delta}$分别是身份、表情和纹理的系数，是所需优化的参数。
+与之前方法\citep{deep3d,GuoZCJZ19}保持一致，本文使用了BFM 2009模型\citep{BFM}中的身份和纹理基，以及从Face Warehouse\citep{FaceWarehouse}中创建的表情基。
+$\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha}_\mathrm{tex}$分别是身份、表情和纹理的系数，是所需优化的参数。
 与之前的方法不同，本文使用了\ref{sec:recon_init}节中预测的系数来计算$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$，从而利用神经网络中的知识作为逆渲染优化的先验。
 此外，本文还额外对顶点位置增加了一个偏移量$\mathbf{S}_\mathrm{off}$，以允许其偏离PCA产生的低维空间，拟合更加多样的人脸形状，从而充分发挥逆渲染用于监督的信息量大的优势。
 
 在获得顶点位置后，还需将其变换到相机坐标系并投影到裁切空间中，以便后续的光栅化。投影后顶点在裁切空间中的坐标为：
 \begin{equation}
-\mathbf{S}_\mathrm{clip} = \mathbf{P}_\mathrm{crop}\mathbf{M}_\mathrm{c}\mathbf{M}_\mathrm{t}\mathbf{M}_\mathrm{d}\mathbf{S}
+\mathbf{S}_\mathrm{clip} = \mathbf{P}_\mathrm{crop}\mathbf{M}_\mathrm{t}\mathbf{M}_\mathrm{d}\mathbf{M}_\mathrm{c}\mathbf{S}
 \text{，}
 \end{equation}
 其中$\mathbf{M}_\mathrm{c}\in \mathrm{SE(3)}$是可优化的参数。
-该步骤在之前第\ref{sec:recon_init}节神经网络预测和坐标系转换后的结果的基础上，再增加了一个参数以供逆渲染过程进一步优化。
-\TODO{更新前面的定义}
-
+该步骤在之前第\ref{sec:recon_init}节神经网络预测（$\mathbf{M}_\mathrm{d}$）和坐标系转换（$\mathbf{M}_\mathrm{t}$）后的结果的基础上，再增加了一个参数以给逆渲染进一步优化的空间。
+需注意，此处的投影矩阵$\mathbf{P}_\mathrm{crop}$需要选取合适的近截平面和远截平面，扩展为$4\times 4$的投影矩阵，以将深度也投影在$[-1,1]$范围内，支持下一步光栅化的深度缓冲和深度测试算法。
 
 除了顶点位置和颜色，本文还计算了每个顶点的法线。
 通行的做法是根据顶点周围的三角形的形状，对三角形的发现做加权平均。
@@ -281,7 +287,11 @@ $\mathbf{\alpha}$、$\mathbf{\beta}$和$\mathbf{\delta}$分别是身份、表情
 是希望在图像中法线方向是平滑变化的，不会在三角形交界处出现明显的跳变。
 
 \paragraph{光栅化}
-该步骤直接使用了
+该步骤直接使用了nvdiffrast中的光栅化算法，
+其输入为顶点的裁切空间坐标$\mathbf{S}_\mathrm{clip}$和顶点索引，
+输出为每个像素的三角形索引和其在该三角形中的重心坐标，
+以及重心坐标对图像像素坐标的梯度。
+
 
 \section{照片到纹理空间信息迁移}
 
