@@ -39,7 +39,33 @@
 
 \section{整体结构设计}
 
-铝型材支架设计
+本平台的硬件框架结构设计主要是参考了\citet{RiviereGBGB20}中展示的布局。
+首批配置了12台相机和4台配有柔光箱的摄影灯，其中相机固定在3个铝型材搭建的、定制的、高自由度可调节的支架上。
+灯则由于其体积质量较大，且市面上缺少相应的单独连接件产品，无法稳固地固定在支架上，因此使用了单独的专用灯架固定。
+图\ref{fig:HDRI}展示了该平台硬件的整体布局。
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \includegraphics[height=7cm]{figures/frame-design}
+    \caption{设计图}
+\end{subfigure}
+\begin{subfigure}[b]{0.2\textwidth}
+    \centering
+    \includegraphics[height=7cm]{figures/frame-impl}
+    \caption{组装完成照片}
+\end{subfigure}
+\begin{subfigure}[b]{0.47\textwidth}
+    \centering
+    \includegraphics[height=7cm]{figures/frame-camera}
+    \caption{相机固定}
+\end{subfigure}
+\caption{铝型材支架的设计和实现}
+\label{fig:frame}
+\end{figure}
+
+图\ref{fig:frame}展示了铝型材支架的设计和实现。
 
 \section{被动相机同步}
 \label{sec:passive_sync}
