@@ -7,7 +7,8 @@ from pathlib import Path
 import cv2
 
 plt.rcParams["pgf.texsystem"] = "xelatex"
-plt.rcParams["pgf.preamble"] = R"\usepackage{ctex}"
+plt.rcParams["pgf.preamble"] = R"""\usepackage[zihao=-4]{ctex}
+\setmainfont{Times New Roman}"""
 
 FIG_PATH = Path('build/figures')
 
@@ -243,8 +244,61 @@ def sdf_grad(img, border):
 
     fig.savefig(FIG_PATH / 'sdf_grad.pgf')
 
+def HDRI_stats():
+    fig, (ax_hist, ax_var) = plt.subplots(1, 2, figsize=(6.3, 2.8))
+    ax_stats = ax_hist.twinx()
+    fig.set_layout_engine('compressed')
+    data = np.load('data/HDRI_stats.npz')
+    i = 4
+
+    # Histogram
+    BIN_SIZE = 32
+    weights = data['count'][i].reshape(-1, BIN_SIZE).sum(axis=-1)
+    bins = np.arange(0, data['count'].shape[1] + 1, BIN_SIZE)
+    ax_hist.hist(bins[:-1], bins=bins, weights=weights,
+                 color='#BBB', histtype='stepfilled')
+    ax_hist.set_ylim(0, 10000)
+    ax_hist.yaxis.set_major_locator(ticker.NullLocator())
+    ax_hist.set_xlabel(R'像素值（曝光时间1/15秒）')
+
+    ax_stats.set_ylabel(R'像素值（曝光时间1/8秒）')
+    ax_stats.set_xlim(0, 12000)
+    ax_stats.yaxis.set_label_position('left')
+    ax_stats.yaxis.set_ticks_position('left')
+    BIN_SIZE = 16
+    weights = data['count'][i].reshape(-1, BIN_SIZE).sum(axis=-1)
+    valid = weights > 10
+    weights = weights[valid]
+    means = data['sum'][i].reshape(-1, BIN_SIZE).sum(axis=-1)[valid] / weights
+    x = np.arange(data['count'].shape[1]) * data['count'][i]
+    x = x.reshape(-1, BIN_SIZE).sum(axis=-1)[valid] / weights
+    ax_stats.plot(x, means, linewidth=2)
+
+    origin = (data['black'][i], data['black'][i + 1])
+    slope = data['exp'][i + 1] / data['exp'][i]
+    ax_stats.axline(origin, slope=slope,
+                    color='red', linestyle='--', linewidth=1,
+                    label=f'估计：$r_i={slope:.2f}$')
+    ax_stats.axline(origin, slope=data['r'][i],
+                    color='orange', linestyle='--', linewidth=1,
+                    label=f'拟合：$r^*_i={data["r"][i]:.2f}$')
+    ax_stats.legend()
+    ax_stats.set_title(R'(a) 相邻曝光照片的像素值关联', y=-0.38)
+
+    std = [1.299498100287206, 1.7574200114417322, 1.8000141805437535, 2.7799237496688822]
+    ax_var.plot(
+        ["100", "200", "400", "800"],
+        np.square(std),
+        "o-", linewidth=2 )
+    ax_var.set_xlabel(R'ISO')
+    ax_var.set_ylabel(R'$\sigma_i^2$')
+    ax_var.set_title(R'(b) ISO与观测噪音方差', y=-0.38)
+
+    fig.savefig(FIG_PATH / 'HDRI_stats.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
+    HDRI_stats()
     problem()
     one_dim_loss()
     l2_loss()

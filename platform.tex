@@ -136,14 +136,14 @@
 
 \begin{figure}
 \includegraphics[width=\textwidth]{figures/passive_sync_schematic}
-\caption{控制器的电路原理图}
+\caption{被动控制器的电路原理图}
 \label{fig:passive_sync_schematic}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[height=5cm]{figures/passive_sync_controller}
-\caption{控制器的实物图}
+\caption{被动控制器的实物图}
 \end{figure}
 
 其中，每个控制器的原理图如图\ref{fig:passive_sync_schematic}所示。
@@ -166,7 +166,7 @@
     \includegraphics[width=\textwidth]{figures/LED_array}
     \caption{单片机和LED阵列}
 \end{subfigure}%
-\caption{被动同步装置的测试装置}
+\caption{被动同步装置的同步精度测试装置}
 \label{fig:passive_sync_test}
 \end{figure}
 
@@ -184,11 +184,92 @@
 对比同一次快门中不同相机拍摄到的照片中读数即可准确获得两台相机曝光的时间差，即控制器的同步精度。
 
 实验结果显示，多台佳能R6相机间的同步精度小于0.5ms，即每次拍摄中不同相机的读数均相同。该精度已经足够满足实际应用的需求，且已经远高于快门滚动的速度。
+因受到相机最高快门速度的限制，未能以更高的精度完成测试。
 此外，本文也测试了R6和另一台佳能90D单反相机间同步的精度，结果显示两台相机间有4ms但非常稳定的延迟。
 
 \input{calib}
 
 \section{基于反射球的光源标定和HDRI合成}
+
+除了相机外，在实验室中拍摄，环境光照信息也可以提前采集，从而获得比用算法从人脸照片中估计更精准的结果。
+这些信息可用于后续逆渲染的优化之中。
+如前文所述，本装置使用的照明为4盏带有柔光箱的摄影灯，均布置在被拍摄对象正面180°的范围内。光源标定的目的是获取被拍摄对象所处的空间中的每个位置上来自每个方向的光照强度，即光场信息。
+但本设备的柔光箱据被拍摄对象约1.5米远，相比来说，人脸的尺度较小，因此，本文假设所有光线均来自无限远，即该光场的分布近似于与空间位置无关而只与光线入射方向有关。
+
+光照强度和方向的对应关系可被编码在一张HDRI图像（High Dynamic Range Image，高动态范围图像）中，该图像中的每个像素点对应于一个方向，像素点的颜色值则对应于该方向上的光照强度和频率分布。
+其与普通的照片保存格式不同，之所以称之为是高动态范围，是因为其每个像素点的颜色值通常作为浮点数保存，因此可以同时记录很强和很弱的光照，同时保持较高的精度。
+使用该技术编码的光照信息也常被用于计算机图形学领域。
+如图\ref{fig:HDRI}是一张以本节所述方法合成的，记录了本文目前实验环境的HDRI图像。
+\begin{figure}
+\centering
+\TODO{HDRI图像}
+% \includegraphics[width=\textwidth]{figures/HDRI}
+\caption{实验环境全景HDRI图像}
+\label{fig:HDRI}
+\end{figure}
+
+\paragraph{数据采集}
+为了收集用于合成HDRI的数据，本文将一个全镜面金属的反射球放置于原被拍摄对象头部的位置，然后通过WiFi控制一台靠近中心的相机，继续固定对焦和光圈设置，改变其快门速度和ISO，以捕获该球不同曝光的照片。
+通常拍摄的相邻两张照片亮度相差约一倍，共拍摄约8张照片。
+这是因为相机的传感器所能记录的最大光照强度是有限的，而若只使用更低的曝光，则由于信噪比的下降，导致最终合成的HDRI中的噪声更多。
+使用多种不同的曝光参数拍摄即可同时保留亮部和暗部的细节。
+后续步骤将直接使用原始Bayer格式的照片，尽可能保留其中信息，同时获取准确的噪声等级估计。
+
+\paragraph{HDRI合成}
+该步骤的目的是将上述拍摄的多张照片中各自最可靠的部分（信噪比高，且未超出传感器量程范围）融合为一张HDRI。
+为此，本文设计了一种类似卡尔曼滤波的融合算法。
+其基本思想是：将不同照片中的同一像素点的读数视为对同一光照强度的不同测量值，并有不同的测量噪声方差，据此对多个观测值加权平均，得到最可能接近真值的估计值。
+
+本方案使用的相机的传感器中包含了约50万个完全不接受入射光线的像素，这些像素可用于估计黑场（即完全无入射光线时传感器的读数）和测量噪声的方差。
+由于数据量非常充裕，这里对每张照片和每个通道分别进行了估计。
+计照片$i$中通道$c\in\{\mathrm{r},\mathrm{g1},\mathrm{g2},\mathrm{b}\}$的黑场为$b_{i,c}$，方差为$\sigma_{i,c}^2$。
+然后，根据拍摄参数计算每张照片的相对亮度，该值与拍摄的曝光时间和ISO设置成正比。
+并将照片据此由暗到亮排序为$\mathcal{I}^{(1)}, \mathcal{I}^{(2)}, \cdots, \mathcal{I}^{(n)}$。
+由于原始照片中记录的传感器读数和实际光照强度呈很好的线性关系，
+因此可根据读数在每两张相邻照片间通过最小二乘法计算其准确的相对亮度比例：
+\begin{equation}
+r_i^* = \argmin_{r_i} \sum_{j|\mathcal{I}^{(i+1)}_j < \xi} \left[r_i (\mathcal{I}^{(i)}_j - b_{i,c}) - (\mathcal{I}^{(i+1)}_j - b_{i+1,c})\right]^2
+\text{，}
+\end{equation}
+其中$\xi$为使用ExifTool读取的“线性上界”(Linearity Upper Margin)，$j$为像素索引。
+该问题为线性最小二乘，可直接求其解析解。
+该比例理论上应与之前从拍摄参数计算的值相同，但实际可能由于相机校准误差或其他原因而有所偏差。
+\begin{figure}
+\centering
+\import{build/figures}{HDRI_stats.pgf}
+\caption[HDRI输入照片读数统计]{HDRI输入照片读数统计。
+(a)展示了相邻曝光的两张照片中同一位置的像素值之间的对应关系，其背景的直方图表示较暗照片像素数量在不同像素值上的分布。
+可见在超出量程前它们具有很好的线性关系，但通过曝光时间估计的亮度比例与实际有明显偏差。
+(b)展示了观测噪音与ISO设定间的关系。}
+\label{fig:HDRI_stat}
+\end{figure}
+如图\ref{fig:HDRI_stat}a展示了其中一对照片的读数对应关系，可见实际拟合的比例与从拍摄参数计算的有明显偏差。
+最后根据这些相对值$r_i^*$，令任意照片的亮度系数为$1$，可求得所有照片的亮度系数$e_i$。
+
+有趣的是，虽然理论上ISO越高则噪声水平将越高，但本方案使用的相机在ISO从200增加至400时噪声水平却无明显上升，反而是黑场由512上升到了2048。由此可以推测或许相机在这两种不同配置时处于不同的工作模式。
+
+在获得了这些参数后，假设观测噪声服从高斯分布，即可从暗到亮递推地合成HDRI。合成的过程可表示为：
+\begin{equation}
+\begin{aligned}
+    \mathcal{J}^{(1)} &= e_1 \left(\mathcal{I}^{(1)} - b_{1,c}\right),\quad
+    \hat{\sigma}_{1,c}^2 = e_1^2 \sigma_{1,c}^2 \\
+    \mathcal{J}^{(i)}_j &= \begin{cases}
+    \frac{e_i^2 \sigma_{i,c}^2 \mathcal{J}^{(i-1)}_j + \hat{\sigma}_{i-1,c}^2 e_i \left(\mathcal{I}^{(i)}_j - b_{i,c}\right)}{\hat{\sigma}_{i-1,c}^2 + e_i^2 \sigma_{i,c}^2} & \text{if } \mathcal{I}^{(i)}_j < \xi \\
+    \mathcal{J}^{(i-1)}_j & \text{otherwise}
+    \end{cases}\\
+    \hat{\sigma}_{i,c}^2 &= \frac{e_i^2 \hat{\sigma}_{i-1,c}^2 \sigma_{i,c}^2}{\hat{\sigma}_{i-1,c}^2 + e_i^2 \sigma_{i,c}^2}
+    \quad (i > 1)\text{，}
+\end{aligned}
+\end{equation}
+其中$\mathcal{J}$为每步合成的照片，$\mathcal{J}^{(n)}$即为最终所需的HDRI。
+该递推过程与卡尔曼滤波中的融合新的观测值的过程类似，且可以由贝叶斯公式导出，即通过以$\mathcal{J}^{(i-1)}$为均值的先验分布，融合以$e_i\left(\mathcal{I}^{(i)} - b_{i,c}\right)$为均值的观测，推导以$\mathcal{J}^{(i)}$为均值的后验分布。
+
+该融合过程具有以下理想的性质：
+较暗的照片信噪比较高，其由于具有较大的$e_i$而在合成时方差较大，从而权重更低；
+照片中超出传感器量程（$\geq\xi$）的部分则完全不会影响合成结果；
+ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也能自动在合成中降低权重。
+
+\paragraph{像素重映射}
 
 \section{主动相机/闪光灯同步}
 
