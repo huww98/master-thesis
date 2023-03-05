@@ -292,6 +292,7 @@ def HDRI_stats():
         "o-", linewidth=2 )
     ax_var.set_xlabel(R'ISO')
     ax_var.set_ylabel(R'$\sigma_i^2$')
+    ax_var.set_ylim(bottom=0)
     ax_var.set_title(R'(b) ISO与观测噪音方差', y=-0.38)
 
     fig.savefig(FIG_PATH / 'HDRI_stats.pgf')
