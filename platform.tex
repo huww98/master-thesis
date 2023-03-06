@@ -268,8 +268,81 @@ r_i^* = \argmin_{r_i} \sum_{j|\mathcal{I}^{(i+1)}_j < \xi} \left[r_i (\mathcal{I
 较暗的照片信噪比较高，其由于具有较大的$e_i$而在合成时方差较大，从而权重更低；
 照片中超出传感器量程（$\geq\xi$）的部分则完全不会影响合成结果；
 ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也能自动在合成中降低权重。
+\pdfcomment{TODO 在照片的方差计算中加入photon noise，这是像素较亮时的主导噪音}
 
 \paragraph{像素重映射}
+在上一步我们获得了一张反射球的HDRI照片，这张照片中记录了环境中几乎所有方向的光照信息（除了被球挡住的方向）。
+但我们仍然需要一种方法将环境光照的方向映射到该照片中的像素坐标上，以便于在渲染时使用。
+该映射取决于诸多因素，如用于拍摄的相机的内外参，球在照片中的位置等。
+本方案将结合第\ref{sec:camera_calib}节输出的相机参数，使用一种半自动化的方式完成该映射。
+
+首先，为了准确得到反射球在照片中的位置，本方案开发了一款标注工具以允许用户手动选中球的位置，如图\ref{fig:sphere_locator}所示。
+该工具在上部将显示经过畸变校正的照片，用户可以自由缩放和平移，以及改变照片的亮度以便观察。在照片上叠加显示了当前选中的球位置的轮廓。
+在下部显示了三组滑块，分别用于调整轮廓的左边界、右边界和上边界在照片中的位置。每组滑块分为粗调和细调两部分，细条滑块允许用户在粗调结果周围10像素进一步细化结果。
+需要注意的是，这里显示的球的轮廓虽然很接近，但并不是一个圆形。为了尽可能精确，本文将解算后球的位置按照标定的参数重新投影到照片上，进而获取该轮廓。
+
+在获得了用户输入的左、右、上三个在畸变校正后的像素坐标下的参数后，本文将通过以下算法解算球在相机坐标系下的位置。
+首先，由于本文假设光线来自无限远处，因此最终坐标映射的结果将和球的尺度无关，不妨将球的半径设为1。
+用户指定的三个参数可各确定一个于球相切的平面的方程，以球心到三个面的距离分别为1联立方程，即可求解出球心的坐标。
+
+\begin{wrapfigure}{r}{4cm}
+\begin{tikzpicture}
+    \filldraw[black] (0,0) circle (2pt) node[anchor=west]{相机$\mathbf{O}$};
+    \draw (0,0) -- (0,1.5) node[right=-1mm] {$f_x$} -- (0,2);
+    \draw (0,0) -- (-2,2);
+    \draw (0,0) -- (2,2);
+    \draw [name path=H] (-2,2) -- node[below] {$c_x$} (0,2) -- (2,2);
+
+    \coordinate (C) at (0.3, 3.3);
+    \filldraw (C) circle (2pt) node[anchor=west]{$\mathbf{C}$};
+    \node[draw, circle] (c) at (C) [minimum size=2.4cm] {};
+    \coordinate (A) at (tangent cs:node=c,point={(0,0)},solution=1);
+    \coordinate (B) at (tangent cs:node=c,point={(0,0)},solution=2);
+    \draw [name path=P1] (0,0) -- ($(0,0)!4cm!(A)$);
+    \draw [name path=P2] (0,0) -- ($(0,0)!4cm!(B)$);
+
+    \path [name intersections={of=P1 and H,by=I1}];
+    \path [name intersections={of=P2 and H,by=I2}];
+    \filldraw (I1) circle (2pt);
+    \filldraw (I2) circle (2pt);
+
+    \node [above] at ($(-2,2)!0.5!(I2)$) {$l$};
+\end{tikzpicture}
+\end{wrapfigure}
+右图为整个场景的俯视图，其中下方的三角形代表相机的视锥体，图中标注了相机经过标定后的焦距$f_x$和光心$c_x$。上方的圆代表反射球，两条切线分别表示由用户输入确定的左，右两个平面。
+下面根据用户输入的像素坐标$l$求解左平面的法向量$\mathbf{n}_l$。
+取点$A = (l-c_x, 1, f_x)$、$B = (l-c_x, 0, f_x)$。
+可以验证该两点均投影在像素横坐标为$l$的位置（图中左侧实心点处），
+于是可以通过点$O$、$A$、$B$确定该平面，其法向量为
+\begin{equation}
+\mathbf{n}_l = \overrightarrow{\mathbf{O}\mathbf{A}} \times \overrightarrow{\mathbf{O}\mathbf{B}}
+= \left[f_x, 0, c_x - l\right]
+\text{。}
+\end{equation}
+同理可以求得右平面和上平面的法向量$\mathbf{n}_r$、$\mathbf{n}_u$。
+记球心坐标为$\mathbf{C}$。
+球心到左平面的距离为1可表示为：
+\begin{equation}
+    \frac {\overrightarrow{\mathbf{O}\mathbf{C}} \cdot \mathbf{n}_l}{\|\mathbf{n}_l\|} = 1
+    \text{。}
+\end{equation}
+对于另外两个平面同理可列方程。
+解该线性方程组即可得到球心的坐标$\mathbf{C}$。
+
+在解算出反射球的具体位置后，需要将其重新投影到照片上并绘制出轮廓，以便用户得到实时的反馈。
+为此，本方案进一步求该轮廓的参数方程以便绘制。
+令曲线参数方程的参数为$\theta\in[0, 2\pi]$。
+设球面上一点$D = C + [\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi]$，其中$\phi$为未知数。
+令$\overrightarrow{OD}$与球面相切，可由$\overrightarrow{\mathbf{O}\mathbf{D}} \perp \overrightarrow{\mathbf{C}\mathbf{D}}$列方程求解$\phi$：
+\begin{equation}
+\begin{aligned}
+&\overrightarrow{\mathbf{O}\mathbf{C}} \cdot \overrightarrow{\mathbf{C}\mathbf{D}} = -1 \\
+\Rightarrow &\mathbf{C} \cdot \left[\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi\right] = -1\\
+\Rightarrow &\phi = \arcsin\frac{-1}{\sqrt{a^2 + \mathbf{C}_z^2}} - \arctan\frac{a}{\mathbf{C}_z^2}, \quad a = \mathbf{C}_x * \cos(\theta) + \mathbf{C}_y * \sin(\theta)
+\text{。}
+\end{aligned}
+\end{equation}
+
 
 \section{主动相机/闪光灯同步}
 
