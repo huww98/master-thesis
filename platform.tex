@@ -332,21 +332,64 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 在解算出反射球的具体位置后，需要将其重新投影到照片上并绘制出轮廓，以便用户得到实时的反馈。
 为此，本方案进一步求该轮廓的参数方程以便绘制。
 令曲线参数方程的参数为$\theta\in[0, 2\pi]$。
-设球面上一点$D = C + [\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi]$，其中$\phi$为未知数。
+设球面上一点$\mathbf{D} = \mathbf{C} + [\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi]$，其中$\phi$为未知数。
 令$\overrightarrow{OD}$与球面相切，可由$\overrightarrow{\mathbf{O}\mathbf{D}} \perp \overrightarrow{\mathbf{C}\mathbf{D}}$列方程求解$\phi$：
 \begin{equation}
 \begin{aligned}
 &\overrightarrow{\mathbf{O}\mathbf{C}} \cdot \overrightarrow{\mathbf{C}\mathbf{D}} = -1 \\
-\Rightarrow &\mathbf{C} \cdot \left[\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi\right] = -1\\
+\Rightarrow &a \cos\phi + \mathbf{C}_z \sin\phi = -1\\
 \Rightarrow &\phi = \arcsin\frac{-1}{\sqrt{a^2 + \mathbf{C}_z^2}} - \arctan\frac{a}{\mathbf{C}_z^2}, \quad a = \mathbf{C}_x * \cos(\theta) + \mathbf{C}_y * \sin(\theta)
-\text{。}
+\text{，}
 \end{aligned}
 \end{equation}
+其中最后一步推导使用了辅助角公式。然后点$D$在像素坐标系中的投影即为所求的反射球的轮廓曲线上的一点，其关于$\theta$的参数方程可用于便捷地绘制出该轮廓。
 
+最后，利用反射球的位置，我们需要解算光照方向与像素坐标的映射关系。
+对于像素坐标上的一点$e$，可将其映射为相机坐标系中的一条源自原点射线，其方向为：
+\begin{equation}
+    \mathbf{v} = \left[\frac{e_x-c_x}{f_x}, \frac{e_y-c_y}{f_y}, 1\right]
+    \text{，}
+    \label{eq:ray1}
+\end{equation}
+该方向是视线方向，也即光线从反射球反射的相反方向。
+该射线与反射球表面交于一点$\mathbf{E}=\lambda\mathbf{v}$，且满足：
+\begin{equation}
+    \| \mathbf{E} - \mathbf{C} \| = 1
+    \text{。}
+    \label{eq:ray2}
+\end{equation}
+在$\mathbf{E}$处，球面的单位法向量为$\mathbf{n}=\overrightarrow{\mathbf{O}\mathbf{E}}$，视线反射的方向为$\mathbf{r}$。
+根据光线反射的原理，$\mathbf{r}$、$\mathbf{v}$、$\mathbf{n}$位于同一平面且入射角等于出射角，有：
+\begin{equation}
+    \mathbf{r} = \mathbf{v} - 2(\mathbf{v} \cdot \mathbf{n}) \mathbf{n}
+    \text{。}
+    \label{eq:ray3}
+\end{equation}
+联立公式\eqref{eq:ray1}至\eqref{eq:ray3}即可获得所求像素坐标$e$与光照方向$\mathbf{r}$的映射关系。
+理想中应当对给定的任意$\mathbf{r}$求解其所对应的像素坐标$e$，
+但方程组的求解过于复杂，因此本方案选择从像素坐标$e$出发，对每个像素求解其对应的光照方向$\mathbf{r}$。
+在使用时，对于任意给定的$\mathbf{r}$，从与其最相近的3个准确对应了某个像素的方向上的光照信息中进行插值。
+
+为了得到可直接在下游任务中使用的环境光照贴图，本方案在照片中反射球所在区域的每个像素处生成一个顶点，并将其连接成三角形网格，从其像素坐标计算每个顶点的纹理坐标，并按照计算的$\mathbf{r}$将其放置在3D单位球上的对应位置，然后使用OpenGL对所生成的网格进行光栅化渲染，在片元着色器中根据纹理坐标对HDRI采样。
+根据所需环境光照贴图的格式不同，可使用不同的顶点着色器完成对应的顶点坐标变换。
+本项目已支持常见的等距柱状投影（Blender中使用）和立方体贴图（nvdiffrast中使用）两种格式。
+
+图\ref{fig:HDRI}即为使用本方案生成的等距柱状投影格式的环境光照贴图。
+从图中可见该图正面质量较好，但背面则有明显变形，精度和分辨率均较低，这是由于背面区域在反射球照片中对应的面积较小。
+被反射球本身挡住的一小片区域则完全是黑色。
+画面中的局部有一些扭曲，这可能是因为所使用的反射球并不是完美的球形导致的。
+未来可通过对反射球的几何形状进行更精细的建模来改善该问题。
 
 \section{主动相机/闪光灯同步}
 
-主动相机同步装置有单片机等实时控制系统控制，能独立控制每台相机、闪光灯触发延迟，最多24个通道。可用于快速抓拍不同闪光灯照明下的照片
+上述软硬件方案已能支撑被动光源采集的整个流程。
+但本平台还希望能加入对主动光源的支持，以便能实验和对比不同重建方法的优劣。
+然而，本方案所使用的消费级相机带来了很大的限制：这些相机在照片模式下无法在很短时间内连续拍摄多张照片，而在视频模式下又缺少不同相机间精确同步的方法。
+所以本文主要参考了\citet{FyffeGTGD16}的方案，使用多盏闪光灯依次以数毫秒的间隔闪光，并将相机分为多组，每组同步到不同的闪光灯上，以此达成同时捕获不同视角和不同光照的照片的目的，为重建提供更多信息。
+
+为了完成对闪光灯和相机的控制，本方案设计了一个主动相机同步装置。
+它带有一个单片机以完成可定制的实时控制，能独立控制每台相机、闪光灯触发延迟，最多可控制24台设备。
+以下部分将进一步介绍该装置的设计和使用。
 
 \paragraph{主动同步装置硬件设计}
 
