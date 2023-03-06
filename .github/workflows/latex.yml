@@ -7,6 +7,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: count words
+        run: texcount -merge main.tex
+
       - name: Compile LaTeX document
         env:
           OPENCV_IO_ENABLE_OPENEXR: "1"
