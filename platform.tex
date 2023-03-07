@@ -202,9 +202,19 @@
 使用该技术编码的光照信息也常被用于计算机图形学领域。
 如图\ref{fig:HDRI}是一张以本节所述方法合成的，记录了本文目前实验环境的HDRI图像。
 \begin{figure}
-\centering
-\includegraphics[width=\textwidth]{figures/HDRI}
-\caption[实验环境全景HDRI图像]{实验环境全景HDRI图像。大图中展示了其中较暗部分的信息}
+\begin{tikzpicture}
+    \node [inner sep=0pt, anchor=north west] at (0,0) {\includegraphics[width=\textwidth]{figures/HDRI}};
+
+    \def\w{4096}
+    \node [inner sep=0pt, anchor=north west] (part) at (8.5cm,-0.8cm) {\includegraphics[width=0.1201171875\textwidth]{figures/HDRI_light_part}};
+    \coordinate (a) at ({(1768/\w)*\textwidth},{(-620/\w)*\textwidth});
+    \coordinate (b) at ({(2260/\w)*\textwidth},{(-900/\w)*\textwidth});
+    \node [inner sep=0pt, anchor=north west, draw=red, fit=(a) (b)] (light) {};
+
+    \path [->] (light) edge [red] node [left] {/32} (part);
+
+\end{tikzpicture}
+\caption[实验环境全景HDRI]{实验环境全景HDRI。通过多张金属反射球的照片合成。大图中展示了其中较暗部分的信息，小图展示了其中一个柔光箱处亮度调整到1/32时的图像}
 \label{fig:HDRI}
 \end{figure}
 
