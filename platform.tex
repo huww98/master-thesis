@@ -190,6 +190,7 @@
 \input{calib}
 
 \section{基于反射球的光源标定和HDRI合成}
+\label{sec:light_calib}
 
 除了相机外，在实验室中拍摄，环境光照信息也可以提前采集，从而获得比用算法从人脸照片中估计更精准的结果。
 这些信息可用于后续逆渲染的优化之中。
@@ -202,9 +203,8 @@
 如图\ref{fig:HDRI}是一张以本节所述方法合成的，记录了本文目前实验环境的HDRI图像。
 \begin{figure}
 \centering
-\TODO{HDRI图像}
-% \includegraphics[width=\textwidth]{figures/HDRI}
-\caption{实验环境全景HDRI图像}
+\includegraphics[width=\textwidth]{figures/HDRI}
+\caption[实验环境全景HDRI图像]{实验环境全景HDRI图像。大图中展示了其中较暗部分的信息}
 \label{fig:HDRI}
 \end{figure}
 
@@ -503,6 +503,7 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
     \draw (\flash,2.5) -- (\flash,-1) node [right] {闪光灯触发};
 \end{tikzpicture}
 \caption{滚动快门原理}
+\label{fig:rolling_shutter}
 \end{wrapfigure}
 本方案使用的是电子前帘快门，其工作方式是首先由电路依次给感光元件的每一行像素通电，使其开始接收光线。
 然后由一块塑料板（快门）快速落下，以同样的顺序依次挡住每一行像素，使其停止接收光线。
@@ -512,18 +513,108 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 因此，若要使用闪光灯拍摄正确曝光的照片，则需要将曝光时间设置得足够长，以至少在某一时刻所有像素在同时接收光线，且需要将闪光灯触发的时刻设置到这段同时接收光线的时间（右图中深色填充区域）。
 如右图标注的闪光灯触发时间点则只能得到上半亮下半暗的照片。
 
+% \begin{algorithm}
+%     \caption{闪光灯触发延迟快速标定}
+%     \label{alg:flash_delay}
+%     \begin{algorithmic}[1]
+%         \State 将相机快门速度设置到1/2秒
+%         \State $o \gets 0$
+%         \Repeat
+%             \State 将闪光灯触发时间设置到相机后$o$毫秒，拍摄一张照片$\mathcal{I}_o$
+%             \State $o \gets o + 100$
+%         \Until{$\mathcal{I}_o$曝光全亮}
+%         \State $o_{\mathrm{upper}}\gets o, o \gets 0$
+%         \While{$\mathcal{I}_o$曝光全亮}
+%             \State 将闪光灯触发时间设置到相机后$o$毫秒，拍摄一张照片$\mathcal{I}_o$
+%             \State $o \gets o - 100$
+%         \EndWhile
+%         \State $o_{\mathrm{lower}}\gets o$
+%         \While{true}
+%             \State $o \gets (o_\mathrm{upper} + o_\mathrm{lower}) / 2$
+%             \State 将闪光灯触发时间设置到相机后$o$毫秒，拍摄一张照片$\mathcal{I}_o$
+%             \If{$\mathcal{I}_o$曝光全亮}
+%                 \State $o_\mathrm{upper} \gets o$
+%             \ElsIf{$\mathcal{I}_o$曝光全暗}
+%                 \State $o_\mathrm{lower} \gets o$
+%             \Else
+%                 \State \textbf{break}
+%             \EndIf
+%         \EndWhile
+%     \end{algorithmic}
+% \end{algorithm}
+
 \paragraph{闪光灯触发延迟快速标定方法}
-为了获取准确的闪光灯触发延迟，利用上述原理，本文设计了一种快速标定算法，如算法\ref{alg:flash-delay}所示。
+为了获取准确的闪光灯触发延迟，利用上述原理，本文设计了一种快速标定流程：
+\begin{enumerate}
+\item 将相机快门速度设置到1/2秒。
+\item 通过二分搜索，找到一个触发延迟，使拍摄照片上半亮下半暗。
+此时闪光灯时间位置在图\ref{fig:rolling_shutter}中标注的位置。
+\item 以0.5毫秒为步长，逐步增加延迟，直到拍摄照片全亮。
+同时根据调整过程中明暗分界线移动的速度，估计快门滚动所需时间。
+\item 调整相机快门速度设置，使其稍大于所估计的快门滚动所需时间。
+\end{enumerate}
+根据该流程，本项目所使用的相机需要比闪光灯晚触发约47毫秒时可正常曝光。并设定相机的快门速度为1/200秒。
 
 \section{照片拍摄和整理流程}
 
+虽然该方案采用了部分自动化控制的手段，但在采集拍摄的过程中依然需要较多的人工参与。
+本节将介绍该平台的基本操作流程，并介绍了一些用于辅助减少工作量的小工具。
+
 \paragraph{同步装置连接与设定}
+在开始拍摄前，需要将相机、灯光等设备固定到预定位置，并连接同步控制器。
+当使用被动同步装置时，可在左右分设两个控制器分别连接附近的相机，再将两个控制器相连。
+主动同步装置由于成本较高，目前只有一个，因此需要将所有相机和闪光灯连接至该控制器，并需要较长的线缆。
+主动同步装置还需根据设定的拍摄方案和标定的触发延迟进行设定。
+连接完成后，需试拍几张以确定软硬件设定是否正确。
 
 \paragraph{拍摄采集对象}
+在拍摄前需要根据光源设置和实验目的设置相机的快门，光圈，ISO等参数，以及在预计被采集对象脸部位置上放一个参照物，并使相机自动对焦到该参照物上，然后切换到手动对焦模式。
+在每一个人采集前，需仔细放大观察相机预览图，并指导被采集者调整姿势，使其脸部处于每台相机的焦点中。该步骤较为繁琐。
+调整完成后，通过控制器触发快门4次，以防意外。
 
 \paragraph{相机、光源标定数据采集}
+在采集完人脸数据后，需要按照第\ref{sec:camera_calib}节中的方法采集相机标定数据，以及按照第\ref{sec:light_calib}节中的方法采集光源标定数据。
+最后再在没有被拍摄物的情况下，采集一组背景照片。
 
 \paragraph{照片拷贝和整理}
+在完成所有采集后，需要将所有照片拷贝到计算机上，整理以供后续算法使用。
+本文尝试了使用相机内建的Wi-Fi功能进行自动化，但链接速度过于缓慢，最终没有采用。
+于是本方案最终使用了半自动化的方式。
+在计算机中运行一个自动拷贝进程，它利用Linux的udev系统监听SD卡连接计算机的事件。
+利用该程序，手工从相机中取出SD卡后，只需将卡插入读卡器，程序便会自动完成挂载、拷贝、卸载的过程，之后需在提示时手工拔出并换入下一张卡。全程无需对计算机进行任何操作。
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+    \node [rectangle,draw=black,rounded corners=3mm] (start) {进程启动};
+    \node [rectangle,draw=black] (wait) [right=of start] {等待SD卡插入};
+    \node [rectangle,draw=black] (mount) [right=of wait] {挂载SD卡};
+    \node [rectangle,draw=black] (copy) [right=of mount] {拷贝照片};
+    \node [rectangle,draw=black] (unmount) [below=of mount] {卸载SD卡};
+    \node (manual) [below=of wait] {手动插入下一张卡};
+
+    \path [->] (start) edge node {} (wait)
+        (wait) edge node {} (mount)
+        (mount) edge node {} (copy)
+        (copy) edge node {} (unmount)
+        (unmount) edge node {} (wait)
+        (manual) edge node {} (wait);
+\end{tikzpicture}
+\caption{半自动照片拷贝进程流程图}
+\end{figure}
+
+然后，在计算机中需要人工对大量拍摄的照片进行筛选、分类，以去除不符合标准的照片，并将不同照片送入不同的下游流程处理。
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figures/pick_photo}
+\caption{照片整理工具UI截图}
+\label{fig:pick_photo}
+\end{figure}
+为此，本方案中包含了一个基于Web的照片整理工具。其界面如图\ref{fig:pick_photo}所示。
+该工具可以快速从CR3格式的照片中提取预览图和高分辨率的预览JPEG图，以便于快速浏览。
+该工具可以识别拍摄相机的序列号，将同一台相机的照片放在一行。并利用照片中记录的时间戳信息，将照片按照时间顺序排列，并根据时间间隔自动分组。
+然后，用户可根据需要对组进行重命名、删除、拆分等操作。
+用户也可以删除单张照片，或单次快门的所有照片。
+此外，本工具还包含了一个基于贪婪算法的快门匹配程序，用于自动匹配同一次快门的所有不同相机拍摄的照片，并可输入后续的相机标定等算法。
 
 \section{初步验证}
 
@@ -551,3 +642,11 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 \item 利用光线追踪方法，进一步考虑全局光照，以估计更加准确的材质。
 \item 将本系统所使用的消费级微单相机更换为工业相机，以实现视频帧同步，可将该实验平台扩展为采集人脸动态表情数据。
 \end{itemize}
+
+\section*{本章小结}
+
+为了突破当前人脸重建算法缺少数据的瓶颈，本章介绍了一个人多视角人脸重建实验平台。
+该平台可实现被动光源和主动光源的全流程人脸多视角图像采集，并能输出准确的相机参数和环境光照信息。
+本章详细介绍了该平台的软硬件设计，其中硬件包括定制的相机支架，主动和被动同步控制器；
+软件包括主动同步控制器的单片机固件，光源标定、相机标定、以及一些提升效率的小工具。
+最后，本章对采集的数据做了初步验证，并对后续这些数据可能的利用方式做了展望。
