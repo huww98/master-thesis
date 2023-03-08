@@ -114,9 +114,18 @@
 
 \begin{figure}
 \centering
-\includegraphics[height=2cm]{figures/2.5mm}
-\caption{快门线接口的2.5mm插头}
-\label{fig:2.5mm}
+\begin{minipage}{.5\textwidth}
+    \centering
+    \includegraphics[height=3cm]{figures/2.5mm}
+    \captionof{figure}{快门线接口的2.5mm插头}
+    \label{fig:2.5mm}
+\end{minipage}%
+\begin{minipage}{.5\textwidth}
+    \centering
+    \includegraphics[height=5cm]{figures/passive_sync_topo}
+    \captionof{figure}{被动同步装置的拓扑结构}
+    \label{fig:passive_sync_topo}
+\end{minipage}%
 \end{figure}
 
 \paragraph{被动同步装置设计}
@@ -124,12 +133,6 @@
 但其中设计的难点在于，被控制的相机数量较多，有12台且可能在未来进一步扩展，且相机在空间上较为分散。
 因此，为了节约线材，并提升操作的便捷性和装置的可扩展性，本方案设计了一种可串联的相机控制器。
 控制器与控制器，控制器与相机间的连接拓扑如图\ref{fig:passive_sync_topo}所示。
-\begin{figure}
-\centering
-\includegraphics[height=5cm]{figures/passive_sync_topo}
-\caption{被动同步装置的拓扑结构}
-\label{fig:passive_sync_topo}
-\end{figure}
 控制器间可以任意方式连接，构成星型、树形或链式等多种不同拓扑，每个控制器最多能与3个其他控制器以及8台相机相连。
 该结构可通过增加控制器的方式近乎无限扩展，从而实现对更多相机的控制。
 此外，每个控制器上都是对等的，通过任意一个控制器上的按钮均可控制所有相机，提升了系统操作的便捷性。
@@ -286,6 +289,12 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 该映射取决于诸多因素，如用于拍摄的相机的内外参，球在照片中的位置等。
 本方案将结合第\ref{sec:camera_calib}节输出的相机参数，使用一种半自动化的方式完成该映射。
 
+\begin{figure}
+\centering
+\includegraphics[height=10cm]{figures/sphere_locator}
+\caption[反射球位置标注工具界面]{反射球位置标注工具界面。上半部分中蓝色线为当前指定左平面位置，绿色为解算出的反射球位置重投影回像素空间的轮廓}
+\label{fig:sphere_locator}
+\end{figure}
 首先，为了准确得到反射球在照片中的位置，本方案开发了一款标注工具以允许用户手动选中球的位置，如图\ref{fig:sphere_locator}所示。
 该工具在上部将显示经过畸变校正的照片，用户可以自由缩放和平移，以及改变照片的亮度以便观察。在照片上叠加显示了当前选中的球位置的轮廓。
 在下部显示了三组滑块，分别用于调整轮廓的左边界、右边界和上边界在照片中的位置。每组滑块分为粗调和细调两部分，细条滑块允许用户在粗调结果周围10像素进一步细化结果。
