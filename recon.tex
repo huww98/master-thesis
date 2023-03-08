@@ -311,7 +311,7 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 对于每个像素，其各个方向的总入射光强为：
 \begin{gather}
     \begin{aligned}
-        \mathbf{E}_i(\mathbf{n}) &=
+        \mathbf{E}^\mathrm{sh}_i(\mathbf{n}) &=
         c_1 L_{22}(\mathbf{n}_x^2-\mathbf{n}_y^2) +
         c_3 L_{20}\mathbf{n}_z^2 +
         c_4 L_{00} -
@@ -334,10 +334,18 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 具体推导过程较为复杂，感兴趣的读者可参考引用的原论文。
 这些参数将使用第\ref{sec:recon_init}节中介绍的神经网络的预测结果初始化，但由于色彩空间和其他定义方式有区别，此处需要进行一些转换。
 
+然而，仅使用球谐函数表示的环境光照是很粗糙的，例如，它作为局部着色方法，无法建模人脸本身的自遮挡现象。
+此外，算法估计的人脸几何形状由于3DMM的表达能力有限，也能出现系统性的偏差。
+拍摄者使用的相机的gamma校正，相机内建的自动亮度优化等也会对逆渲染产生影响。
+这些偏差若不做处理，则最终均会反映到下一节中重建的反射率纹理上，从而影响模型在新环境向的渲染效果。
+因此，本文也采用了\citet{IchimBP15}提出的方法，引入一个光照修正场，用于吸收上述所有未能建模的偏差中的低频部分。
+但与本文不同，该作者是在纹理空间进行着色计算的，其修正场也是定义在纹理空间。
+因此本文选择直接在像素空间定义光照修正场$\mathbf{E}^\mathrm{off}\in\mathbb{R}^{3\times H\times W}$，即照片中每个像素每个通道的入射光强偏差。
+
 着色时本文仅考虑了朗伯特漫反射模型，即反射光强正比于总入射光强，其比例则直接建模为上述反射率$\mathbf{\rho}$。
 因此每个像素最终着色的结果为：
 \begin{equation}
-    \mathbf{C} = \mathbf{\rho} \mathbf{E} \text{。}
+    \mathbf{C} = \mathbf{\rho} \left(\mathbf{E}^\mathrm{sh} + \mathbf{E}^\mathrm{off}\right) \text{。}
 \end{equation}
 
 \paragraph{抗锯齿}
@@ -366,18 +374,23 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 还根据本节中介绍的渲染流程计算了着色的梯度。
 $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 \begin{equation}
+\begin{split}
 \mathcal{L}_\mathrm{reg} = \alpha_1\left(\| \mathbf{\alpha}_\mathrm{id} \|_2^2 +
     \| \mathbf{\alpha}_\mathrm{exp} \|_2^2 +
     \| \mathbf{\alpha}_\mathrm{tex} \|_2^2\right) +
-    \alpha_2 \| \mathbf{S}_\mathrm{off} \|_2^2 +
-    \alpha_3 \| \mathbf{L}_{UV} \|_2^2 +
-    \alpha_4 \mathcal{L}_\delta
+    \alpha_2 \| \mathbf{S}_\mathrm{off} \|_F^2 +
+    \alpha_3 \mathcal{L}_\delta +
+    \alpha_4 \| \mathbf{L}_{UV} \|_2^2 \\
+    + \alpha_5 \| \mathbf{E}^\mathrm{off} \|_F^2 +
+    \alpha_6 \| \nabla_{x,y} \mathbf{E}^\mathrm{off} \|_F^2
     \text{，}
+\end{split}
 \end{equation}
 其中第一项是3DMM系数的正则化项，该项使3DMM的结果保持在其先验分布范围内；
 第二项约束顶点偏移量的大小，避免模型过度偏离3DMM的预测；
-第三项使环境光照更趋向于白色，从而鼓励模型使用反射率参数来解释照片中的颜色；
-第四项是拉普拉斯正则项，它使模型顶点间的相对位置和拓扑结构在优化过程中保持稳定，其定义为：
+第四项使环境光照更趋向于白色，从而鼓励模型使用反射率参数来解释照片中的颜色；
+最后两项分别约束光照修正场和其梯度的大小，限制其强度和频率；
+第三项是拉普拉斯正则项，它使模型顶点间的相对位置和拓扑结构在优化过程中保持稳定，其定义为：
 \begin{equation}
     \mathcal{L}_\delta = \sum_{i=1}^N \left\|\mathbf{S}_\mathrm{off}^i - \frac{1}{|\mathcal{N}_i|}\sum_{j\in\mathcal{N}_i} \mathbf{S}_\mathrm{off}^j\right\|_2^2
     \text{，}
@@ -385,8 +398,6 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 其中$\mathcal{N}_i$是与顶点$i$相邻的顶点集合，在实践中可使用稀疏矩阵来实现。
 注意此处拉普拉斯正则项的定义与常见的不同，这里直接以偏移量而不是顶点坐标作为输入，因此其形式更加简单；
 且并未对不同顶点加权或考虑旋转不变性等，因为本文使用的模型通常顶点分布较均匀，且在3DMM模型建模了绝大部分形变，偏移量总体较小。实践中这种简单的算法即可发挥期望的效果。
-
-\TODO{光照修正场}
 
 通过对以上损失函数的优化，本文实现了人脸模型和具有未知背景的照片的精确对齐，即获得了较为准确的人脸模型几何形状。
 并且也得到了对环境光照较为准确的估计。
