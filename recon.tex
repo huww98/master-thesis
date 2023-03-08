@@ -393,6 +393,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 但由于所使用的反射率信息是来自3DMM的低维空间，其表达能力较弱，不能准确建模人脸的纹理细节。
 
 \section{照片到纹理空间信息迁移}
+\label{sec:method_photo2tex}
 
 本节将介绍如何将照片中的信息迁移到人脸模型的纹理中，并计算高分辨率的反射率纹理贴图。
 该步骤总体上类似于一次反方向的光栅化渲染过程。
@@ -426,6 +427,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
     \alpha \mathbf{\rho}_\mathrm{img} + (1-\alpha) \mathbf{\rho}, \alpha = \frac{\mathbf{v}\cdot\mathbf{n}}{\|\mathbf{v}\|} & \text{if像素位于有效区域} \\
 \mathbf{\rho} & \text{otherwise}
 \end{cases}
+\label{eq:texture_fusion}
 \end{equation}
 
 最终，通过逆渲染的优化过程，即可获得所需的3D模型顶点坐标$\mathbf{S}$和其纹理$\mathbf{\rho}_\mathrm{fused}$。
