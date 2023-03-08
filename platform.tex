@@ -456,12 +456,31 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 在每次循环中处理按钮的IO事件，并刷新OLED的界面显示。
 \begin{figure}
 \centering
-\begin{subfigure}{.45\textwidth}
-    \includegraphics[width=\textwidth]{figures/active_sync_states}
+\begin{subfigure}[b]{.45\textwidth}
+    \begin{tikzpicture}[
+        state/.style={circle, draw, minimum size=1.5cm, inner sep=0pt, align=center},
+        initial/.style={state, fill=black!50, text=white},
+        every edge/.style={draw, bend left=10pt, ->},
+    ]
+        \linespread{1}\zihao{5}
+        \node (offline) [state, initial] {断电};
+        \node (standby) [state, right=of offline, label={below,align=center:16mA\\（主菜单）}] {待机};
+        \node (sleep) [state, right=of standby, label=below:2.5mA] {休眠};
+        \node (test) [state, above=of standby] {测试\\模式};
+        \node (timer) [state, above=of sleep, label=25mA] {高精度\\定时};
+
+        \path (offline) edge (standby)
+                        edge node [sloped,above] {按住按钮3} (test)
+              (standby) edge (sleep)
+                        edge (timer)
+              (sleep)   edge (standby)
+              (timer)   edge (standby);
+
+    \end{tikzpicture}
     \caption{状态机}
     \label{fig:active_sync_states}
 \end{subfigure}%
-\begin{subfigure}{.55\textwidth}
+\begin{subfigure}[b]{.55\textwidth}
     \includegraphics[width=\textwidth]{figures/active_sync_ui}
     \caption{用户界面}
     \label{fig:active_sync_ui}
