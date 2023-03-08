@@ -316,12 +316,115 @@ nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过�
 但付出的代价是部分梯度不能正确地传递到真正处于边缘的顶点上，
 而是被传递到与边缘相近的真正被采样到的三角形的顶点上。
 但是在完整的优化问题中通常都具有鼓励模型局部光滑的正则项，这些梯度的影响最终将被较为均匀地分布到更大的区域上，因此这些偏差应该不会造成太大的影响。
+图\ref{fig:vis_grad}展示了一些具体的例子。
 
 此外，该方法只能缓解模型与未知背景间的不连续性判定，而对模型自身不同部分的遮挡无能为力。
 这会导致内部的可见性梯度偏小，从而导致整体梯度估计发生偏差。
 其具体影响需根据实际应用进一步分析。
 
-\TODO{加一个图：两种典型采样失败模式，标注期望传递梯度的顶点和本文传递的顶点}
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.33\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
+            \draw [help lines] (0,0) grid [step=2cm] (4,2);
+            \draw[red, name path=H] (1,1) -- (3,1);
+            \filldraw (1,1) circle (1pt) node [above] {A}
+                      (3,1) circle (1pt) node [above] {B};
+
+            \coordinate [label=right:p] (p) at (1.2,2.2);
+            \coordinate [label=right:q] (q) at (2,-0.3);
+            \coordinate (r) at (-0.5,1);
+
+            \draw (p) -- (r) -- (q);
+            \draw [green!30!black, name path=T, thick] (p) -- (q);
+            \path [name intersections={of=H and T,by=I}];
+
+            \draw[fill=green] (p) circle (2pt);
+            \draw[fill=green] (q) circle (2pt);
+            \draw[fill] (I) circle (1pt);
+
+            \begin{pgfonlayer}{background}
+                \fill[green!50] (p) -- (1.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2, -0.5) -- (q);
+                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
+            \end{pgfonlayer}
+        \end{tikzpicture}
+        \caption{正常检测到的边缘}
+    \end{subfigure}%
+    \begin{subfigure}{0.33\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
+            \draw [help lines] (0,0) grid [step=2cm] (4,2);
+            \draw[red, name path=H] (1,1) -- (3,1);
+            \filldraw (1,1) circle (1pt) node [above] {A}
+                      (3,1) circle (1pt) node [above] {B};
+
+            \coordinate [label=above:p] (p) at (1.2,2.2);
+            \coordinate [label=below:q] (q) at (2,-0.3);
+            \coordinate (r) at (-0.5,1);
+            \coordinate (s) at (2.2,2.2);
+            \coordinate (t) at (2.6,-0.3);
+
+            \draw (p) -- (r) -- (q);
+            \draw (s) -- (t) -- (q) -- cycle;
+            \draw (s) -- (p);
+            \draw [green!30!black, name path=T, thick] (p) -- (q);
+            \path [name intersections={of=H and T,by=I}];
+
+            \draw[fill=red] (p) circle (2pt);
+            \draw[fill=red] (q) circle (2pt);
+            \draw[fill=gray!50] (s) circle (2pt);
+            \draw[fill=gray!50] (t) circle (2pt);
+            \draw[fill] (I) circle (1pt);
+
+            \begin{pgfonlayer}{background}
+                \fill[green!50] (s) -- (2.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2.6, -0.5) -- (t);
+                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
+            \end{pgfonlayer}
+        \end{tikzpicture}
+        \caption{缓解情况1}
+    \end{subfigure}%
+    \begin{subfigure}{0.33\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
+            \draw [help lines] (0,0) grid [step=2cm] (4,2);
+            \draw[red, name path=H] (1,1) -- (3,1);
+            \filldraw (1,1) circle (1pt) node [above] {A}
+                      (3,1) circle (1pt) node [above] {B};
+
+            \coordinate [label=above:p] (p) at (0.6,2.2);
+            \coordinate [label=right:q] (q) at (2.2,-0.3);
+            \coordinate (r) at (0.5,-0.2);
+            \coordinate (s) at (2.2,2.2);
+
+            \draw (p) -- (r) -- (q);
+            \draw (q) -- (s) -- (p);
+            \draw [green!30!black, name path=T, thick] (p) -- (q);
+            \path [name intersections={of=H and T,by=I}];
+
+            \draw[fill=red] (p) circle (2pt);
+            \draw[fill=green] (q) circle (2pt);
+            \draw[fill=gray!50] (s) circle (2pt);
+            \draw[fill] (I) circle (1pt);
+
+            \begin{pgfonlayer}{background}
+                \fill[green!50] (s) -- (2.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2.2, -0.5) -- (q);
+                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
+            \end{pgfonlayer}
+        \end{tikzpicture}
+        \caption{缓解情况2}
+    \end{subfigure}
+    \caption[nvdiffrast可见性梯度稀疏的原因及其缓解方法]{nvdiffrast可见性梯度稀疏的原因及其缓解方法。
+    (a)展示了可正常检测到可见性梯度的情况，即A像素的采样点正好落在处于边缘的三角形上。其中绿色顶点表示梯度正确传递的顶点。
+    (b)、(c)展示了两种常见的检测失败的情况，灰色顶点表示本应获得可见性梯度却未获得的顶点。
+    (b)情况常见于脸颊与背景间，相机视线与表面法线夹角大，每个三角形的投影面积被大幅压缩，导致被采样到的概率减小。
+    (c)情况常见于模型被裁剪的边缘，部分三角形与模型仅有一个点连接，这些三角形有较高概率被A像素采样，却不被识别为处于边缘。
+    本文提出的方法能在B像素采样到背景时，通过将本应传给灰色顶点的可见性梯度转而传递给红色像素，从而缓解该问题。}
+    \label{fig:vis_grad}
+\end{figure}
 
 \paragraph{局限性}
 
