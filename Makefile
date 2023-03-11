@@ -2,7 +2,14 @@ all: build/main.pdf
 
 -include build/main.pdf.deps
 
-build/main.pdf: main.tex build/figures/problem.pgf build/figures/one_dim_loss.pgf
+FIGURES = build/figures/problem.pgf \
+		  build/figures/one_dim_loss.pgf \
+		  build/figures/sdf.pgf \
+		  build/figures/sdf_grad.pgf \
+		  build/figures/HDRI_stats.pgf \
+		  build/figures/l2_loss.pgf
+
+build/main.pdf: main.tex $(FIGURES)
 	mkdir -p build
 	latexmk \
 		-use-make \
