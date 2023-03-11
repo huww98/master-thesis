@@ -5,6 +5,7 @@ import matplotlib.transforms as transforms
 import numpy as np
 from pathlib import Path
 import cv2
+from scipy.spatial.transform import Rotation as R
 
 plt.rcParams["pgf.texsystem"] = "xelatex"
 plt.rcParams["pgf.preamble"] = R"""\usepackage[zihao=-4]{ctex}
@@ -297,6 +298,45 @@ def HDRI_stats():
 
     fig.savefig(FIG_PATH / 'HDRI_stats.pgf')
 
+def corner_fit():
+    fig, ax = plt.subplots(1,1, figsize=(3.1, 2.5))
+    fig.set_layout_engine('compressed')
+
+    data = np.load('data/corner_data.npz')
+    fit = np.load('data/corner_fit.npz')
+
+    rxyz = data['rxyz']
+    # ZYX euler angle to angle with xy plane
+    angle = R.from_euler('XYZ', rxyz).as_matrix()[:,2,2]
+    angle = np.rad2deg(np.arccos(angle))
+    d = data['xyz'][:,2]
+
+    angle_mask = (d > -.3) & (d < .2)
+    reproj_err_o = np.linalg.norm(fit['opencv'], axis=-1).mean(axis=0)
+    ax.scatter(angle[angle_mask], reproj_err_o[angle_mask], s=1, label='OpenCV')
+
+    reproj_err_s = np.linalg.norm(fit['saddle'].reshape(100,-1,2), axis=-1).mean(axis=0)
+    ax.scatter(angle[angle_mask], reproj_err_s[angle_mask], s=1, label='Saddle(ours)')
+
+    ax.set_xlabel(R'标定板与成像平面夹角（度）')
+    ax.set_ylabel(R'重投影误差（像素）')
+    ax.legend()
+
+    fig.savefig(FIG_PATH / 'corner_fit_angle.pgf')
+
+    fig, ax = plt.subplots(1,1, figsize=(3.1, 2.5))
+    fig.set_layout_engine('compressed')
+
+    d_mask = (angle < 70)
+    ax.scatter(d[d_mask], reproj_err_o[d_mask], s=1, label='OpenCV')
+    ax.scatter(d[d_mask], reproj_err_s[d_mask], s=1, label='Saddle(ours)')
+    ax.set_xlabel(R'标定板与焦平面距离（米）')
+    ax.set_ylabel(R'重投影误差（像素）')
+    ax.set_ylim(-0.2, 5.5)
+    ax.legend()
+
+    fig.savefig(FIG_PATH / 'corner_fit_dist.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     HDRI_stats()
@@ -304,6 +344,7 @@ def main():
     one_dim_loss()
     l2_loss()
     sdf()
+    corner_fit()
 
 if __name__ == '__main__':
     main()
