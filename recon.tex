@@ -16,10 +16,37 @@
 \section{总体流程}
 
 \begin{figure}
-    \centering
-    \includegraphics[width=0.95\linewidth]{figures/recon_overall}
-    \caption{人脸重建总体流程}
-    \label{fig:recon_overall}
+\centering
+\begin{tikzpicture}[
+    node distance=1cm and 1.2cm,
+    data/.style={draw, ellipse, minimum size=1cm, align=center},
+    proc/.style={draw, rectangle, minimum size=1cm, align=center},
+    every edge/.style={draw, ->},
+]
+    \zihao{5}
+    \node[data] (img) {照片};
+    \node[proc, right=of img] (net) {神经网络};
+    \node[proc, right=of net] (inv) {逆渲染};
+    \node[proc, right=of inv] (trans) {纹理迁移};
+    \node[proc, right=of trans] (decom) {光照解耦};
+    \node[proc, right=of decom] (comp) {纹理补全};
+    \node[data, above left=of inv] (3dmm) {3DMM};
+    \node[data, below=of inv] (light) {环境光照};
+    \node[data, above right=of inv] (tex) {低频纹理};
+
+    \path (img) edge (net)
+          (net) edge node [above] {初始化} (inv)
+          (inv) edge node [above] {几何} (trans)
+                edge (light)
+                edge (tex)
+          (trans) edge node [above] {贴图} (decom)
+          (decom) edge node [above] {贴图} (comp)
+          (3dmm) edge (inv);
+    \path[every edge] (light) -| (decom);
+    \path[every edge] (tex) -| (comp);
+\end{tikzpicture}
+\caption{人脸重建总体流程}
+\label{fig:recon_overall}
 \end{figure}
 
 为完成该人脸重建的目标，本方法将输出一个基于预定义的拓扑结构的三角形网格，以及其对应的高清纹理贴图，该图的像素中编码了人脸表面的光线反射率。
