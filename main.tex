@@ -10,7 +10,7 @@
 \usepackage[author={胡玮文}]{pdfcomment}
 \usepackage{tikz}
 \usepackage{wrapfig}
-\usetikzlibrary{backgrounds,intersections,calc,positioning,fit}
+\usetikzlibrary{backgrounds,intersections,calc,positioning,fit,shapes.geometric}
 
 \regtotcounter{chapter}
 
@@ -19,8 +19,8 @@
 
 \newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}\GenericWarning{}{LaTeX Warning: TODO: #1}}
 
-\title{3D人脸可微分逆渲染及数据采集}
-\titleEN{Differentiable Inverse Rendering and Data Collection for 3D Face}
+\title{基于可微分渲染的高效3D人脸重建}
+\titleEN{Efficient 3D Face Reconstruction Based on Differentiable~Rendering}
 \classificationnumber{TP37}
 
 \author{胡玮文}
@@ -67,11 +67,11 @@ Hello, world!
 
 \include{related_work}
 
+\include{platform}
+
 \include{method}
 
 \include{recon}
-
-\include{platform}
 
 \chapter{结论与展望}
 \label{chap:conclusion}

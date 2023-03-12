@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('pgf')
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
