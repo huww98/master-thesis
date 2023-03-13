@@ -302,11 +302,11 @@ def HDRI_stats():
     fig.savefig(FIG_PATH / 'HDRI_stats.pgf')
 
 def corner_fit():
-    fig, ax = plt.subplots(1,1, figsize=(3.1, 2.5))
+    fig, (ax_angle, ax_d, ax_gain) = plt.subplots(1,3, figsize=(6.3, 2.0))
     fig.set_layout_engine('compressed')
 
     data = np.load('data/corner_data.npz')
-    fit = np.load('data/corner_fit.npz')
+    fit = np.load('data/corner_fit_14.npz')
 
     rxyz = data['rxyz']
     # ZYX euler angle to angle with xy plane
@@ -316,37 +316,49 @@ def corner_fit():
 
     angle_mask = (d > -.3) & (d < .2)
     reproj_err_o = np.linalg.norm(fit['opencv'], axis=-1).mean(axis=0)
-    ax.scatter(angle[angle_mask], reproj_err_o[angle_mask], s=1, label='OpenCV')
+    ax_angle.scatter(angle[angle_mask], reproj_err_o[angle_mask], s=1, label='OpenCV')
 
-    reproj_err_s = np.linalg.norm(fit['saddle'].reshape(100,-1,2), axis=-1).mean(axis=0)
-    ax.scatter(angle[angle_mask], reproj_err_s[angle_mask], s=1, label='Saddle(ours)')
+    reproj_err_s = np.linalg.norm(fit['saddle'], axis=-1).mean(axis=0)
+    ax_angle.scatter(angle[angle_mask], reproj_err_s[angle_mask], s=1, label='本文')
 
-    ax.set_xlabel(R'标定板与成像平面夹角（度）')
-    ax.set_ylabel(R'重投影误差（像素）')
-    ax.legend()
-
-    fig.savefig(FIG_PATH / 'corner_fit_angle.pgf')
-
-    fig, ax = plt.subplots(1,1, figsize=(3.1, 2.5))
-    fig.set_layout_engine('compressed')
+    ax_angle.set_xlabel(R'标定板与成像平面夹角（度）')
+    ax_angle.set_ylabel(R'重投影误差（像素）')
+    ax_angle.set_ylim(-0.03, 0.9)
+    ax_angle.xaxis.set_major_locator(ticker.MultipleLocator(30))
+    ax_angle.legend()
 
     d_mask = (angle < 70)
-    ax.scatter(d[d_mask], reproj_err_o[d_mask], s=1, label='OpenCV')
-    ax.scatter(d[d_mask], reproj_err_s[d_mask], s=1, label='Saddle(ours)')
-    ax.set_xlabel(R'标定板与焦平面距离（米）')
-    ax.set_ylabel(R'重投影误差（像素）')
-    ax.set_ylim(-0.2, 5.5)
-    ax.legend()
+    ax_d.scatter(d[d_mask], reproj_err_o[d_mask], s=1, label='OpenCV')
+    ax_d.scatter(d[d_mask], reproj_err_s[d_mask], s=1, label='本文')
+    ax_d.set_xlabel(R'标定板与焦平面距离（米）')
+    ax_d.set_ylim(-0.1, 2.6)
+    ax_d.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+    ax_d.legend()
 
-    fig.savefig(FIG_PATH / 'corner_fit_dist.pgf')
+    gain_exp_2 = list(range(7, 15)) + ['inf']
+    gain_exp_2 = gain_exp_2[::-1]
+    gain_mask = d_mask & angle_mask
+    reproj_err_s = []
+    reproj_err_o = []
+    for g in gain_exp_2:
+        fit = np.load(f'data/corner_fit_{g}.npz')
+        reproj_err_s.append(np.linalg.norm(fit['saddle'][:, gain_mask], axis=-1).mean(axis=(0,1)))
+        reproj_err_o.append(np.linalg.norm(fit['opencv'][:, gain_mask], axis=-1).mean(axis=(0,1)))
+
+    ax_gain.plot(gain_exp_2, reproj_err_o, 'o-', label='OpenCV')
+    ax_gain.plot(gain_exp_2, reproj_err_s, 'o-', label='本文')
+    ax_gain.set_xlabel(R'增益（log2最大电子数）')
+    ax_gain.legend()
+
+    fig.savefig(FIG_PATH / 'corner_fit.pgf')
 
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
-    HDRI_stats()
-    problem()
-    one_dim_loss()
-    l2_loss()
-    sdf()
+    # HDRI_stats()
+    # problem()
+    # one_dim_loss()
+    # l2_loss()
+    # sdf()
     corner_fit()
 
 if __name__ == '__main__':
