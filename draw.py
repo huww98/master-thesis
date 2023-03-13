@@ -372,6 +372,36 @@ def corner_fit():
                 ax.scatter(off_o[:, 0], off_o[:, 1], s=1, c='red')
                 fig.savefig(FIG_PATH / f'corner_gain-{g}_{iid:04d}_{t}.pgf')
 
+STAB_DATA = [
+    ("264029004613", 1121, 0.32),
+    ("284021000282", 1250, 0.31),
+    ("284021000925", 1106, 0.31),
+    ("284021006242", 1143, 0.45),
+    ("284021006877", 1283, 0.47),
+    ("284021006904", 1190, 0.29),
+    ("284021006911", 1250, 0.55),
+    ("284021006920", 1361, 0.37),
+    ("284021009519", 1271, 0.37),
+    ("294021000859", 1178, 1.04),
+    ("294021002041", 1217, 0.39),
+    ("304021000278", 1360, 0.43),
+]
+
+def stab_ablation():
+    stab_data = sorted(STAB_DATA, key=lambda x: x[0])
+    fig,ax = plt.subplots(1,1, figsize=(3.3, 2.0))
+    fig.set_layout_engine('compressed')
+    ax.set_ylabel(R'重投影误差（像素）')
+    x = np.arange(len(stab_data)) + 1
+    ax.scatter(
+        x,
+        [d[2] for d in stab_data],
+    )
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.set_ylim(0, 1.1)
+
+    fig.savefig(FIG_PATH / 'stab_ablation.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     HDRI_stats()
@@ -380,6 +410,7 @@ def main():
     l2_loss()
     sdf()
     corner_fit()
+    stab_ablation()
 
 if __name__ == '__main__':
     main()
