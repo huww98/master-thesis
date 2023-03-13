@@ -341,9 +341,9 @@ def corner_fit():
     reproj_err_s = []
     reproj_err_o = []
     for g in gain_exp_2:
-        fit = np.load(f'data/corner_fit_{g}.npz')
-        reproj_err_s.append(np.linalg.norm(fit['saddle'][:, gain_mask], axis=-1).mean(axis=(0,1)))
-        reproj_err_o.append(np.linalg.norm(fit['opencv'][:, gain_mask], axis=-1).mean(axis=(0,1)))
+        fit_g = np.load(f'data/corner_fit_{g}.npz')
+        reproj_err_s.append(np.linalg.norm(fit_g['saddle'][:, gain_mask], axis=-1).mean(axis=(0,1)))
+        reproj_err_o.append(np.linalg.norm(fit_g['opencv'][:, gain_mask], axis=-1).mean(axis=(0,1)))
 
     ax_gain.plot(gain_exp_2, reproj_err_o, 'o-', label='OpenCV')
     ax_gain.plot(gain_exp_2, reproj_err_s, 'o-', label='本文')
@@ -352,13 +352,33 @@ def corner_fit():
 
     fig.savefig(FIG_PATH / 'corner_fit.pgf')
 
+    IMG_ID = [23]
+    GAIN = [14, 10]
+    for g in GAIN:
+        fit = np.load(f'data/corner_fit_{g}.npz')
+        for iid in IMG_ID:
+            img = cv2.imread(f'data/corners/{iid:04d}.exr', cv2.IMREAD_UNCHANGED)[::-1, ..., 0]
+            gain = 2**g
+            img = np.random.poisson(img * gain) / gain
+            for t in ['opencv', 'saddle']:
+                fig, ax = plt.subplots(1,1, figsize=(1.57, 1.57))
+                ax.set_axis_off()
+                # set frame color
+                ax.set_position([0, 0, 1, 1])
+                ax.imshow(img, cmap='gray', vmin=0, vmax=1, interpolation='none', origin='lower')
+                truth = data['img'][iid]
+                off_o = fit[t][:, iid] + truth
+                ax.scatter(truth[0], truth[1], s=4, c='green')
+                ax.scatter(off_o[:, 0], off_o[:, 1], s=1, c='red')
+                fig.savefig(FIG_PATH / f'corner_gain-{g}_{iid:04d}_{t}.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
-    # HDRI_stats()
-    # problem()
-    # one_dim_loss()
-    # l2_loss()
-    # sdf()
+    HDRI_stats()
+    problem()
+    one_dim_loss()
+    l2_loss()
+    sdf()
     corner_fit()
 
 if __name__ == '__main__':
