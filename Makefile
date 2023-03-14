@@ -1,4 +1,4 @@
-all: build/main.pdf
+all: build/main.pdf build/blind.pdf
 
 -include build/*.pdf.deps
 
