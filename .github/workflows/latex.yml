@@ -18,6 +18,4 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: thesis
-          path:
-            - build/main.pdf
-            - build/blind.pdf
+          path: build/*.pdf
