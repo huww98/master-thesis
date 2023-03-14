@@ -1,6 +1,12 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{scutmaster}[SCUT Master Thesis Template]
 
+\DeclareOption{blind}{\gdef\@blind{true}}
+\DeclareOption*{\PassOptionsToClass{\CurrentOption}{ctexbook}}
+\ProcessOptions\relax
+
+\newcommand{\hideinblind}[1]{\ifx\@blind\@empty#1\fi}
+
 \LoadClass[
     a4paper,openany,
     scheme=chinese,
@@ -119,14 +125,18 @@
             \zihao{3}
             \hbadness=10000 % suppress warning
             \begin{tabular}{w{s}{6.5em} c}
-                作者姓名 & \@author\\
-                \cline{2-2}
+                \hideinblind{
+                    作者姓名 & \@author\\
+                    \cline{2-2}
+                }
                 学位类别 & \@degree\\
                 \cline{2-2}
-                指导教师 & \@supervisor~\@supervisortitle\\
-                \cline{2-2}
-                        &\\
-                \cline{2-2}
+                \hideinblind{
+                    指导教师 & \@supervisor~\@supervisortitle\\
+                    \cline{2-2}
+                            &\\
+                    \cline{2-2}
+                }
                 所在学院 & \@school\\
                 \cline{2-2}
                 论文提交日期 & \@date\\
@@ -248,3 +258,8 @@
 \bibliographystyle{gbt7714-numerical}
 
 \RequirePackage{tocbibind}
+
+% \PassOptionsToPackage{pdftitle={\@title}}{hyperref}
+% \ifx\@blind\@empty
+% \PassOptionsToPackage{pdfauthor={\@author}}{hyperref}
+% \fi

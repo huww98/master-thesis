@@ -1,6 +1,6 @@
 all: build/main.pdf
 
--include build/main.pdf.deps
+-include build/*.pdf.deps
 
 FIGURES = build/figures/problem.pgf \
 		  build/figures/one_dim_loss.pgf \
@@ -16,6 +16,17 @@ build/main.pdf: main.tex $(FIGURES)
 		-interaction=nonstopmode \
 		-file-line-error \
 		-deps-out=build/main.pdf.deps \
+		-outdir=build \
+		-xelatex \
+		$<
+
+build/blind.pdf: blind.tex main.tex $(FIGURES)
+	mkdir -p build
+	latexmk \
+		-use-make \
+		-interaction=nonstopmode \
+		-file-line-error \
+		-deps-out=build/blind.pdf.deps \
 		-outdir=build \
 		-xelatex \
 		$<

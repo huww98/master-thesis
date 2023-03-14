@@ -6,7 +6,6 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{siunitx}
-\usepackage[pdfusetitle]{hyperref}
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{totcount}
@@ -14,6 +13,7 @@
 \usepackage{tikz}
 \usepackage{wrapfig}
 \usetikzlibrary{backgrounds,intersections,calc,positioning,fit,shapes.geometric}
+\usepackage{hyperref}
 
 \regtotcounter{chapter}
 
@@ -44,9 +44,11 @@
 \begin{document}
 
 \maketitle
-\maketitleEN
-\nominationpage
-\declareoforiginality
+\hideinblind{
+    \maketitleEN
+    \nominationpage
+    \declareoforiginality
+}
 
 \frontmatter
 \chapter{摘要}
@@ -149,6 +151,7 @@ Hello, world!
 \backmatter
 \bibliography{main}
 
+\hideinblind{
 \chapter{致谢}
 
 研究生三年的时光转瞬即逝。
@@ -163,5 +166,6 @@ CVTE为本文的所有实验提供了经济支持。
 感谢嘉立创公司提供的免费PCB打样服务，让我这个软件专业的学生也能有机会实现自己定制的硬件。
 同时，我要感谢我的同学们，与他们相处我感到很快乐，他们也给予了我很多的帮助。
 最后，感谢强盛的祖国，和平的时代，富饶的社会，以及无数为之而奋斗的先辈们，所有人的努力造就了今天令人安心的科研环境。
+}
 
 \end{document}
