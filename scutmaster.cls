@@ -1,6 +1,7 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{scutmaster}[SCUT Master Thesis Template]
 
+\gdef\@blind{}
 \DeclareOption{blind}{\gdef\@blind{true}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{ctexbook}}
 \ProcessOptions\relax
@@ -259,7 +260,11 @@
 
 \RequirePackage{tocbibind}
 
-% \PassOptionsToPackage{pdftitle={\@title}}{hyperref}
-% \ifx\@blind\@empty
-% \PassOptionsToPackage{pdfauthor={\@author}}{hyperref}
-% \fi
+\AtBeginDocument{
+    \@ifpackageloaded{hyperref}{
+        \hypersetup{pdftitle={\@title}}
+        \hideinblind{
+            \hypersetup{pdfauthor={\@author}}
+        }
+    }{}
+}
