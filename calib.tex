@@ -193,6 +193,7 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
 
             \While{$C \cup S \neq V$}
                 \State $i \gets \forall i\in V| i\notin C, \exists j\in S| (i,j)\in E$
+                    \Comment{选择与已知位置的标定板相邻的相机}
                 \State $U_{i} \gets T_{j}\hat{T}_{i,j}^{-1}$
                     \Comment{相机$i$到世界坐标系的变换}
                 \State $C \gets C \cup \{i\}$
