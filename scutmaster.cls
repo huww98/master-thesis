@@ -12,6 +12,7 @@
     a4paper,openany,
     scheme=chinese,
     zihao=-4,
+    fontset=ubuntu,
     linespread=1.5
 ]{ctexbook}
 
