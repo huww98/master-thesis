@@ -1,37 +1,30 @@
-all: build/main.pdf build/blind.pdf
+all: build/main.pdf build/blind.pdf build/sys_design.pdf
+
+.PHONY: all clean draw_figures
+
+build:
+	mkdir -p build
+
+build/%.pdf: | build
+	latexmk \
+		-interaction=nonstopmode \
+		-file-line-error \
+		-deps-out=$@.deps \
+		-outdir=build \
+		-xelatex \
+		$<
+
+build/main.pdf: main.tex | draw_figures
+
+build/blind.pdf: blind.tex main.tex | draw_figures
+
+build/sys_design.pdf: sys_design.tex
 
 -include build/*.pdf.deps
 
-FIGURES = build/figures/problem.pgf \
-		  build/figures/one_dim_loss.pgf \
-		  build/figures/sdf.pgf \
-		  build/figures/sdf_grad.pgf \
-		  build/figures/HDRI_stats.pgf \
-		  build/figures/l2_loss.pgf
+draw_figures: build/figures/*.pgf
 
-build/main.pdf: main.tex $(FIGURES)
-	mkdir -p build
-	latexmk \
-		-use-make \
-		-interaction=nonstopmode \
-		-file-line-error \
-		-deps-out=build/main.pdf.deps \
-		-outdir=build \
-		-xelatex \
-		$<
-
-build/blind.pdf: blind.tex main.tex $(FIGURES)
-	mkdir -p build
-	latexmk \
-		-use-make \
-		-interaction=nonstopmode \
-		-file-line-error \
-		-deps-out=build/blind.pdf.deps \
-		-outdir=build \
-		-xelatex \
-		$<
-
-build/figures/%.pgf: draw.py
+build/figures/*.pgf: draw.py
 	python3 $<
 
 clean:
