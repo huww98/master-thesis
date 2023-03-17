@@ -226,7 +226,7 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 注意此处列出的$\tilde{\mathcal{L}}_n$仅包含了模型与背景间的可见性相关梯度，在实际中需要配合通常的可微分渲染以计算颜色$\mathbf{c}$和其他已知背景的可见性梯度。
 
 根据以上分析，我们最终得到了一个附加的，仅定义在模型边缘处像素的损失函数。
-该函数的目的是在逆渲染的优化中，产生额外的收缩与扩张两项梯度，从而促进模型对齐到与未知的背景的边缘。
+该函数的目的是在逆渲染的优化中，产生额外的收缩与扩展两项梯度，从而促进模型对齐到与未知的背景的边缘。
 
 \section{实验结果}
 
@@ -236,7 +236,62 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 在该实验中，立方体每个面均是纯色，因此着色的步骤将不会产生梯度。
 该优化过程中所利用的梯度仅来自于不同面之间，立方体与背景间的可见性梯度。
 
-图\ref{fig:cube_opt}展示了该实验中立方体的位置和姿态的收敛情况。
+\paragraph{实现细节}
+生成随机背景时，背景四个角的颜色从立方体六个面使用的六种颜色中随机选择，
+其余部分的颜色则从该四个角的颜色中双线性插值得到。
+如SoftRas中所述，该优化问题有很多局部最优点，但本文的重点并不在此。
+因此本文选择在立方体姿态真实值附近随机生成初始值，以提高优化的成功率。
+具体方法为，立方体的棱长为$2$，立方体中心坐标均匀分布在真值附近的$[-0.3,0.3]^3$的立方体内，
+并绕任意旋转轴关于其中心旋转$[0,30°]$的角度。
+该优化过程使用PyTorch\citep{pytorch}和nvdiffrast实现，被优化的参数是表示SE(3)变换的6个参数。
+优化的目标函数为公式\eqref{eq:loss_n_tilde}，且未使用任何正则项。
+本文使用Adam\citep{adam}优化器，学习率为$10^{-3}$，其余参数为默认值。
+渲染的分辨率为$128\times128$，运行了5000次优化迭代。
+本实现在NVIDIA RTX3060显卡上，在批大小128的情况下，每秒能运行约180次优化迭代，整个优化过程需要约27秒。
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[
+        node distance=2pt and 0pt,
+        image/.style={inner sep=0pt, outer sep=0pt},
+    ]
+        \node (a) [image] {\includegraphics[width=1.05in]{figures/cube_opt/target/110.png}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/cube_opt/init/110.png}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/cube_opt/black/110.png}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/cube_opt/exp/110.png}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/cube_opt/my/110.png}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/cube_opt/truth/110.png}};
+
+        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/cube_opt/target/118.png}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/cube_opt/init/118.png}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/cube_opt/black/118.png}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/cube_opt/exp/118.png}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/cube_opt/my/118.png}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/cube_opt/truth/118.png}};
+
+        \small
+        \node [below=of a] {(a)目标图像};
+        \node [below=of b] {(b)初始化};
+        \node [below=of c] {(c)黑色背景};
+        \node [below=of d] {(d)数学期望背景};
+        \node [below=of e] {(e)本文方法};
+        \node [below=of f] {(f)理想背景};
+    \end{tikzpicture}
+    \caption[立方体的位置和姿态的收敛情况对比]{
+        立方体的位置和姿态的收敛情况对比。
+        (a)立方体渲染于随机背景上的优化目标图像；
+        (b)优化前初始化的立方体姿态；
+        (c)使用黑色背景模型的优化结果；
+        (d)使用随机背景的数学期望作为背景模型的优化结果；
+        (e)使用本文方法的优化结果；
+        (f)直接使用渲染目标图像时使用的背景的优化结果。
+    }
+    \label{fig:cube_opt_vis}
+\end{figure}
+图\ref{fig:cube_opt_vis}可视化了两组实验的结果。
+可见若使用不准确的的黑色或数学期望背景模型，该优化问题则很难收敛到期望的结果。
+而利用本章提出的方法即可在不对背景进行建模的情况下，以较高的概率得到准确的结果。
+表\ref{tab:cube_opt}展示了不同背景模型下优化的成功率与收敛精度的对比。
 
 \section{讨论}
 \label{sec:method_discuss}
@@ -273,8 +328,8 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 更好的是，在同一抗锯齿模块中还可以同时处理其他已知背景部分的可见性梯度，例如下巴和脖子间，鼻子和脸颊间。
 
 但nvdiffrast的覆盖率计算是稀疏的，即有部分$\sigma\in(0,1)$的像素无法被检测到，检测的概率和所用3D模型的网格密度有关。
-而扩张项的梯度与收缩项相互制衡，因此其梯度的计算必须与收缩项相互耦合，即他们稀疏的模式必须相同
-又注意到扩张项的梯度对于边缘的每一个像素是均匀的，因此本实现直接在反向传播时，对所有实际检测到$\sigma\in(0,1)$的像素添加上该项梯度。该方法也基本无额外内存和运算开销。
+而扩展项的梯度与收缩项相互制衡，因此其梯度的计算必须与收缩项相互耦合，即他们稀疏的模式必须相同
+又注意到扩展项的梯度对于边缘的每一个像素是均匀的，因此本实现直接在反向传播时，对所有实际检测到$\sigma\in(0,1)$的像素添加上该项梯度。该方法也基本无额外内存和运算开销。
 
 nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过大，进而导致模型不能收敛到期望的位置，
 因此可能还需要手动将相关梯度乘以一个放大系数进行补偿。
