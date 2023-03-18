@@ -24,7 +24,7 @@ build/sys_design.pdf: sys_design.tex
 
 draw_figures: build/figures/*.pgf
 
-build/figures/*.pgf: draw.py
+build/figures/%.pgf: draw.py
 	python3 $<
 
 clean:
