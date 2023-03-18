@@ -1,0 +1,22 @@
+\begin{wrapfigure}{r}{4.7cm}
+    \begin{tikzpicture}
+        \zihao{5}
+        \draw[->] (0,0) -- (0,3) node[right] {感光元件行};
+        \draw[->] (-0.2,0) -- (4,0) node[below] {时间};
+        \def\s{0.5}
+        \def\sp{1.0}
+        \def\dur{1.7}
+        \def\h{2.2}
+        \filldraw [fill=blue!30,draw=none] (\s,\h) -- (\s+\sp,0) -- node [below] {曝光时间} (\s+\sp+\dur,0) -- (\s+\dur,\h);
+        \filldraw [fill=blue!50,draw=none] (\s+\sp,\h) -- (\s+\sp,0) -- (\s+\dur,0) -- (\s+\dur,\h);
+        \draw (\s,\h) -- (\s+\sp,0) -- (\s+\sp+\dur,0) -- (\s+\dur,\h);
+        \draw (0,\h) -- (\s+\dur,\h);
+        \draw [thin,draw=blue!50] (\s+\sp,0) -- (\s+\sp,-0.5);
+        \draw [thin,draw=blue!50] (\s+\sp+\dur,0) -- (\s+\sp+\dur,-0.5);
+
+        \def\flash{1.2}
+        \draw (\flash,2.5) -- (\flash,-1) node [right] {闪光灯触发};
+    \end{tikzpicture}
+    \caption{滚动快门原理}
+    \label{fig:rolling_shutter}
+\end{wrapfigure}
