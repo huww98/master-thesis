@@ -156,7 +156,7 @@ $s$表示平移前后该点据相机的距离比例。
     \text{，}
 \end{equation}
 转换后的模型即为$\tilde{M}=\{\mathbf{M}_\mathrm{t}\mathbf{v}_i\}_i$，其中$\mathbf{v}_i$需在最后一维上加上1以扩展为齐次坐标。
-图\ref{fig:crop}用一个玩具实验展示了转换前后的模型，以及该转换的必要性。
+% 图\ref{fig:crop}用一个玩具实验展示了转换前后的模型，以及该转换的必要性。
 
 \section{模型裁剪边缘的梯度处理}
 \label{sec:recon_sdf}
@@ -446,7 +446,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 \begin{itemize}
 \item 在OpenGL的约定中，裁切空间的坐标范围为$[-1,1]$，而纹理坐标为$[0,1]$，因此它们在交换时需要分别进行一次线性变换以映射到正确的范围；
 \item 在对原裁切空间坐标进行插值以获得新的纹理坐标时，需要对齐次坐标进行插值，再除以插值后的$w$坐标，而不能反过来处理，如此才能获得透视变换正确的插值结果。
-图\ref{fig:unwrap_interpolate}展示了这两种不同操作顺序到的的不同结果。
+% 图\ref{fig:unwrap_interpolate}展示了这两种不同操作顺序到的的不同结果。
 \end{itemize}
 
 此外，人脸在特定视角下只能观测到其未被遮挡的部分，因此以上述方法渲染出的纹理图像中，只有映射到照片中可见表面的部分才是有效的。
@@ -481,14 +481,100 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 本节将介绍本实现的细节，以及其最终呈现的3D模型重新渲染的结果。
 
 \paragraph{实现细节}
-
-\TODO{超参数，学习率，优化迭代次数。}
+该实验过程使用PyTorch\citep{pytorch}和nvdiffrast实现。
+长度单位为毫米。
+本文使用Adam\citep{adam}优化器，光照参数、3DMM模型参数、平移量、旋转量、顶点偏移量的学习率分别为$10^{-2}$、$10^{-2}$、$10^{-2}$、$10^{-4}$、$10^{-3}$，其余参数为默认值。
+可见性梯度扩展项的系数为$\alpha=10^{-7}$。
+3DMM系数，顶点偏移、拉普拉斯、环境光照、光照修正场强度、梯度的正则项系数分别为
+$10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
+逆渲染的分辨率为$1024\times1024$，运行了1000次优化迭代。
+本实现在NVIDIA RTX3060显卡上，单张照片的逆渲染优化约需要20秒。
 
 \subsection{重新渲染效果}
 
+\begin{figure}
+\centering
+    \begin{tikzpicture}[
+        node distance=1pt and 0pt,
+        image/.style={inner sep=0pt, outer sep=0pt},
+    ]
+        \node (a) [image] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/initial}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/relight}};
+
+        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/initial}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/relight}};
+
+        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/initial}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/relight}};
+
+        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/initial}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/relight}};
+
+        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/initial}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/relight}};
+
+        \small
+        \node [below=of a] {(a)目标图像};
+        \node [below=of b] {(b)初始化};
+        \node [below=of c] {(c)重新渲染};
+        \node [below=of d] {(d)新视角};
+        \node [below=of e] {(e)几何\&光照};
+        \node [below=of f] {(f)新光照};
+\end{tikzpicture}
+\caption[重建模型重新渲染的效果]{
+    使用本文方法重建模型重新渲染的效果。
+    (a)需要拟合的目标照片；
+    (b)神经网络初始化的模型和光照；
+    (c)使用本文方法重建的模型重新渲染的结果；
+    (d)同一模型在旋转30°的新视角下重新渲染的结果；
+    (e)逆渲染过程中估计的人脸几何和环境光照；
+    (f)使用Blender在新的光照环境下重新渲染的结果。
+    照片来自FFHQ数据集\citep{styleGAN}
+}
+\label{fig:rerender}
+\end{figure}
 本实现的目标是重建3D人脸模型并重新渲染输出较高质量的图像。
 如图\ref{fig:rerender}展示了本文的实现重建的模型重新渲染的结果。
-\TODO{分析结果}
+可以看到，本文的方法可以以很高的精度重新渲染获得以照片非常接近的结果。
+同时，在新的视角和光照环境渲染也有不错的效果，良好地实现了既定目标。
+与神经网络初始化的模型相比，本文的方法可以得到更准确的几何结构，以及显著更加丰富的纹理。
+
+但是，作为一个传统优化算法，在巨大的解空间下，其鲁棒性上并不如神经网络的结果，特别是容易产生意外的小几何结构，例如在图\ref{fig:rerender}中的第一行中，鼻梁左侧出现了一个尖锐的突起，导致了明显的亮点。
+这样的缺陷可以在未来结合更多有关人脸的先验知识得到改善。
+作为权宜之计，也可以人工进行修复。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/diffrast_face/00015/final_diffuse}
+    \caption{重建的反射率纹理贴图}
+    \label{fig:diffuse_map}
+\end{figure}
+图\ref{fig:diffuse_map}展示了本文的实现重建的反射率纹理贴图。
+该贴图对应了图\ref{fig:rerender}中的第一行。
+可见，虽然照片中的人脸有明显的光照效果，纹理贴图中的颜色基本上是均匀的。
+这说明本文实现的光照模型可较好地拟合并解耦照片中的光照效果。
+同时，正脸部分毛孔和胡须的细节也被很好地保留了下来，两侧从照片中看不到的部分也被很好地补全了。
+这说明了本文使用的纹理补全方法的有效性。
 
 \subsection{边缘对齐效果比较}
 
@@ -499,7 +585,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 “关键点”表示使用类似Deep3D训练时使用的方法，针对单张图片进一步以关键点作为监督信号进一步优化。
 \TODO{分析结果}
 
-需要指出，本文使用的适应未知背景的可微分渲染方法也可用于训练神经网络，从而实现类似Deep3D的实时效率。有待进一步研究。
+需要指出，本文使用的适应未知背景的可微分渲染方法也可用于训练神经网络，从而实现类似Deep3D的实时效率。这方面还有待进一步研究。
 
 \subsection{几何形状准确度定量比较}
 
@@ -519,6 +605,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 本章介绍的方法仅使用了少量建模在3DMM中的人脸先验知识，该信息中不包括人脸的几何和纹理细节。
 而基于单张图片同时估计几何和纹理的问题是高度非适定的，因此本文也无法准确地重建这些细节。
 目前，本文仅能重建较为低频的几何细节，此外未能表示的细节则全部会烘焙在反射率的纹理中。
+本方法重建的几何形状也容易受到刘海，眼睛等遮挡物的影响，导致出现较大偏差。
 这种方式虽然在原始视角和光照条件下渲染时可充分还原照片，但在大幅度改变视角或光照条件时，则会出现明显失真。
 
 此外，本文所使用的简单的朗伯特反射模型也过于简化，无法建模镜面反射导致的高光，以及人脸的次表面散射现象。
