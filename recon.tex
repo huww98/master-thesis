@@ -579,12 +579,48 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 
 \subsection{边缘对齐效果比较}
 
+\begin{figure}
+\centering
+\begin{tikzpicture}[
+    node distance=2pt and 0pt,
+    image/.style={inner sep=0pt, outer sep=0pt},
+    align result/.style={image, opacity=0.4}
+]
+    \node (target) [image] {\includegraphics[height=1.55in]{figures/diffrast_face/04038/align_target}};
+
+    \node (init) [image, right=of target] {\includegraphics[height=1.55in]{figures/diffrast_face/04038/align_target}};
+    \node [align result] at (init) {\includegraphics[height=1.55in]{figures/diffrast_face/04038/alpha_init}};
+
+    \node (landmark) [image, right=of init] {\includegraphics[height=1.55in]{figures/diffrast_face/04038/align_target}};
+    \node [align result] at (landmark) {\includegraphics[height=1.55in]{figures/diffrast_face/04038/alpha_landmark}};
+    \node [image] at (landmark) {\input{build/figures/landmark.pgf}};
+
+    \node (fitted) [image, right=of landmark] {\includegraphics[height=1.55in]{figures/diffrast_face/04038/align_target}};
+    \node [align result] at (fitted) {\includegraphics[height=1.55in]{figures/diffrast_face/04038/alpha_fitted}};
+
+    \small
+    \node [below=of target] {(a)目标图像};
+    \node [below=of init] {(b)神经网络预测};
+    \node [below=of landmark] {(c)关键点约束};
+    \node [below=of fitted] {(d)本文方法};
+\end{tikzpicture}
+\caption[人脸边缘对齐效果比较]{
+    人脸边缘对齐效果比较。白色半透明覆盖层是人脸3D模型在图像平面的投影。
+    (a)目标图像；
+    (b)Deep3D\citep{deep3d}神经网络预测；
+    (c)使用关键点约束代替本文提出的损失函数对单张图像进行优化的结果，其中绿色圆点是2D检测方法的预测，红色是3D模型上标注的关键点在图像平面的投影；
+    (d)本文方法的结果。
+}
+\label{fig:edge_alignment}
+\end{figure}
 本文的实现最大的特色是完全利用可微分渲染中的可见性梯度实现了模型与照片中边缘的对齐。
 如图\ref{fig:edge_alignment}展示了本文的实现与其他方法的边缘对齐效果比较。
 其中Deep3D\citep{deep3d}是使用神经网络直接预测的方法，其训练过程使用了2D人脸关键点作为监督信号。
+可能是由于其输入的分辨率较低，Deep3D的预测在高分辨率的图像中的对齐存在少量偏差。
 由于本文方法需要针对每张图片迭代优化，因此为了公平比较，
-“关键点”表示使用类似Deep3D训练时使用的方法，针对单张图片进一步以关键点作为监督信号进一步优化。
-\TODO{分析结果}
+图\ref{fig:edge_alignment}c展示了以类似Deep3D训练时使用的方法，针对单张图片以关键点作为监督信号进一步优化的结果。
+可见虽然关键点已良好对齐，但这些监督信息仍不足以使模型和照片中的边缘精确对齐。
+而本文的实现则能够很好地对齐边缘，且除了图片本身，不需要额外的监督信息。
 
 需要指出，本文使用的适应未知背景的可微分渲染方法也可用于训练神经网络，从而实现类似Deep3D的实时效率。这方面还有待进一步研究。
 
@@ -597,9 +633,34 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 
 \subsection{模型裁剪边缘的梯度处理的效果}
 
-本文提出的可微分渲染方法应用在人脸应用时，由于人脸模型的人工裁剪导致出现在图片中不存在的边缘。
-为验证本文提出的裁剪边缘处理方法的有效性，图\ref{fig:edge_gradient}展示了不同处理方法的效果比较。
-\TODO{分析结果}
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[
+        node distance=2pt and 0pt,
+        image/.style={inner sep=0pt, outer sep=0pt},
+        align result/.style={image, opacity=0.4}
+    ]
+        \node (target) [image] {\includegraphics[height=1.55in]{figures/diffrast_face/04114/target_hs}};
+
+        \node (my) [image, right=of target] {\includegraphics[height=1.55in]{figures/diffrast_face/04114/final_rerendered}};
+
+        \node (no_sdf) [image, right=of my] {\includegraphics[height=1.55in]{figures/diffrast_face/04114/no_sdf}};
+
+        \small
+        \node [below=of target] {(a)目标图像};
+        \node [below=of my] {(b)本文方法};
+        \node [below=of no_sdf] {(c)不特殊处理};
+    \end{tikzpicture}
+    \caption{基于SDF的裁剪边缘处理方法效果}
+    \label{fig:edge_gradient}
+\end{figure}
+本文提出的可微分渲染方法应用在3D人脸重建时，由于人脸模型的人工裁剪导致出现在图片中不存在的边缘。
+为验证本文提出的基于SDF的裁剪边缘处理方法的有效性，图\ref{fig:edge_gradient}展示了不同处理方法的效果比较。
+对于原模型的下巴下方和额头上方的裁剪边缘，不做特殊处理时，可见性梯度试图指引这些边缘向外扩展以对齐到照片中的边缘。
+然而照片中并不存在与之对应的边缘，这些边缘则将一直向外扩展，直到与其他正则化项达到平衡。
+最终导致优化产生的网格与原模型的语义不一致，使得拟合质量劣化，且导致人脸模型重新拼接回完整的人体模型非常困难。
+例如图\ref{fig:edge_gradient}c中，算法将本应位于下巴处的网格用于拟合了照片中的脖子区域。
+使用本文提出的方法即可过滤掉这部分应用在裁剪边缘的梯度，从而避免这种问题。
 
 \section{局限性}
 

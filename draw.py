@@ -402,6 +402,25 @@ def stab_ablation():
 
     fig.savefig(FIG_PATH / 'stab_ablation.pgf')
 
+def landmark():
+    data = np.load('data/lms68.npz')
+
+    fig,ax = plt.subplots(1,1, figsize=(1.55, 1.55))
+    ax.set_position([0, 0, 1, 1])
+    ax.axis('off')
+    # transparent background
+    fig.patch.set_alpha(0)
+    lower = np.array([79.5, 439.5])
+    upper = lower + 384
+    bound = np.array([lower, upper])
+    bound = bound / 1024 * 2 - 1
+    ax.set_xlim(bound[0, 0], bound[1, 0])
+    ax.set_ylim(bound[1, 1], bound[0, 1])
+    ax.scatter(data['pred'][:, 0], data['pred'][:, 1], s=1, c='red')
+    ax.scatter(data['gt'][:, 0], data['gt'][:, 1], s=1, c='green')
+
+    fig.savefig(FIG_PATH / 'landmark.pgf')
+
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     HDRI_stats()
@@ -411,6 +430,7 @@ def main():
     sdf()
     corner_fit()
     stab_ablation()
+    landmark()
 
 if __name__ == '__main__':
     main()
