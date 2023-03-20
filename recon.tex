@@ -459,7 +459,61 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 前者可准确识别有效和无效区域交界的位置；且法向与相机方向夹角越大其纹理分辨率越低，这也可以为后续补全的步骤提供依据，允许解算的纹理和补全的纹理间平滑过渡。
 但该策略则无法区分朝向相机但被遮挡的部分。
 后者则可以识别出被遮挡的区域，但由于数值计算的精度有限，需要设定阈值，因此无法准确判别交界的位置。
-本文选取两种策略识别的有效区域的并集作为最终的有效区域。
+本文选取两种策略识别的有效区域的交集作为最终的有效区域。
+\begin{figure}
+\centering
+\begin{subfigure}{4.35cm}
+    \includegraphics[width=4.35cm]{figures/diffrast_face/04114/target_hs}
+    \caption{照片}
+\end{subfigure}%
+\begin{subfigure}{5.8cm}
+\begin{tikzpicture}
+    % 画一个表示透明的棋盘格
+    \clip (0,0) rectangle (5.8cm,4.35cm);
+    \begin{scope}[
+        fgcolor/.style={fill=white!50!black},
+        bgcolor/.style={fill=black!30!white},
+        scale=0.1,
+        ]
+        \foreach \y in {0,1,...,43}{
+            \foreach \x in {0,1,...,57}{
+                \pgfmathparse{mod(\x+\y,2) ? "fgcolor" : "bgcolor"}
+                \edef\rcolor{\pgfmathresult}
+                \path[\rcolor] (\x ,\y) rectangle (1+\x,1+\y);
+            }
+        }
+    \end{scope}
+    \node [inner sep=0pt,outer sep=0pt,anchor=south west] at (0,0) {\includegraphics[width=5.8cm]{figures/diffrast_face/04114/uv_unwrap_full}};
+\end{tikzpicture}%
+\caption{纹理空间（局部）}
+\end{subfigure}%
+\begin{subfigure}{5.8cm}
+\begin{tikzpicture}[blend mode=screen]
+    \begin{scope}[transparency group]
+        \begin{scope}[blend mode=multiply]
+            \fill[blue] (0,0) rectangle (5.8cm,4.35cm);
+            \node [inner sep=0pt,outer sep=0pt,anchor=south west] at (0,0) {\includegraphics[width=5.8cm]{figures/diffrast_face/04114/uv_unwrap_normal}};
+        \end{scope}
+    \end{scope}
+    \begin{scope}[transparency group]
+        \begin{scope}[blend mode=multiply]
+            \fill[green] (0,0) rectangle (5.8cm,4.35cm);
+            \node [inner sep=0pt,outer sep=0pt,anchor=south west] at (0,0) {\includegraphics[width=5.8cm]{figures/diffrast_face/04114/uv_unwrap_occ}};
+        \end{scope}
+    \end{scope}
+\end{tikzpicture}
+\caption{有效区域判断策略}
+\end{subfigure}
+\caption[纹理迁移结果]{
+    将照片(a)中的像素值迁移到纹理空间(b)中的结果。
+    (b)中的透明度正比于法向与相机方向夹角的余弦值。
+    (c)展示了两种策略的识别效果，
+    其中蓝色区域表示法向与相机方向夹角小于90°的区域，
+    绿色区域表示深度判断的未被遮挡区域，
+    青色为两者的交集，即有效区域。
+}
+\label{fig:unwrap_result}
+\end{figure}
 如图\ref{fig:unwrap_result}展示了迁移的结果以及这两种策略的识别效果。
 
 \paragraph{纹理补全}
@@ -483,10 +537,10 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 \paragraph{实现细节}
 该实验过程使用PyTorch\citep{pytorch}和nvdiffrast实现。
 长度单位为毫米。
-本文使用Adam\citep{adam}优化器，光照参数、3DMM模型参数、平移量、旋转量、顶点偏移量的学习率分别为$10^{-2}$、$10^{-2}$、$10^{-2}$、$10^{-4}$、$10^{-3}$，其余参数为默认值。
+本文使用Adam\citep{adam}优化器，光照参数、3DMM模型参数、平移量、旋转量、顶点偏移量的学习率分别为$10^{-3}$、$10^{-2}$、$10^{-2}$、$10^{-4}$、$10^{-3}$，其余参数为默认值。
 可见性梯度扩展项的系数为$\alpha=10^{-7}$。
 3DMM系数，顶点偏移、拉普拉斯、环境光照、光照修正场强度、梯度的正则项系数分别为
-$10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
+$10^{-5}$、$10^{-9}$、$40$、$10^{-4}$、$10^{-3}$、$10^{-3}$。
 逆渲染的分辨率为$1024\times1024$，运行了1000次优化迭代。
 在优化时，前100次迭代仅优化3DMM的反射率系数和SH光照参数，后续迭代则同时优化所有参数。
 本实现在NVIDIA RTX3060显卡上，单张照片的逆渲染优化约需要16秒。
@@ -626,10 +680,32 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 
 \subsection{几何形状准确度定量比较}
 
+\begin{table}
+    \caption[FaceWarehouse数据集上的平均重建误差]{
+        在FaceWarehouse数据集中来自9个采集对象的共180个3D模型上的平均重建误差（毫米）。
+        与之前的工作相同，本文展示了在大小两种不同的人脸裁剪区域下的结果。
+    }
+    \label{tab:facewarehouse}
+    \centering
+    \begin{tabular}{l|rrr}
+        \toprule
+        \multirow{2}{*}{方法} & \multicolumn{2}{c}{平均重建误差} & \multirow{2}{*}{运行时间} \\
+        \cmidrule{2-3}
+        & 小 & 大 \\
+        \midrule
+        Deep3D\citep{deep3d} & 1.81 & 1.91 & 2ms \\
+        \citet{GZCVVPT16} & 1.59 & 1.84 & 120s \\
+        本文方法 & 1.66 & \textbf{1.81} & 20s \\
+        \hspace{2ex} -无顶点偏移 & 1.70 & 1.90 & 20s \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 为定量地评估本文的实现的几何形状准确度，本文在FaceWarehouse\citep{FaceWarehouse}数据集上进行了对比实验。
 该数据集中包含了多个采集对象的多种表情的照片，以及其对应的3D模型。
 仿照之前的方法，本文使用了FaceWarehouse数据集中地9个采集对象，各20种表情进行评估。
-\TODO{实验}
+结果如表\ref{tab:facewarehouse}所示。
+本文的实现在两种不同的人脸裁剪区域下的平均重建误差分别为1.66mm和1.81mm，均优于Deep3D的结果。
+这说明本文提出的方法能有效利用照片中的信息，在已经非常准确的3D模型上进一步提高几何形状的准确度。并能与其他复杂的优化方法\citep{GZCVVPT16}相媲美。
 
 \subsection{模型裁剪边缘的梯度处理的效果}
 
