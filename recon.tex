@@ -626,7 +626,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 
 \subsection{几何形状准确度定量比较}
 
-为定量地评估本文的实现的几何形状准确度，本文在FaceWarehouse数据集上进行了对比实验。
+为定量地评估本文的实现的几何形状准确度，本文在FaceWarehouse\citep{FaceWarehouse}数据集上进行了对比实验。
 该数据集中包含了多个采集对象的多种表情的照片，以及其对应的3D模型。
 仿照之前的方法，本文使用了FaceWarehouse数据集中地9个采集对象，各20种表情进行评估。
 \TODO{实验}
@@ -635,22 +635,19 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 
 \begin{figure}
     \centering
-    \begin{tikzpicture}[
-        node distance=2pt and 0pt,
-        image/.style={inner sep=0pt, outer sep=0pt},
-        align result/.style={image, opacity=0.4}
-    ]
-        \node (target) [image] {\includegraphics[height=1.55in]{figures/diffrast_face/04114/target_hs}};
-
-        \node (my) [image, right=of target] {\includegraphics[height=1.55in]{figures/diffrast_face/04114/final_rerendered}};
-
-        \node (no_sdf) [image, right=of my] {\includegraphics[height=1.55in]{figures/diffrast_face/04114/no_sdf}};
-
-        \small
-        \node [below=of target] {(a)目标图像};
-        \node [below=of my] {(b)本文方法};
-        \node [below=of no_sdf] {(c)不特殊处理};
-    \end{tikzpicture}
+    \begin{subfigure}{1.6in}
+        \includegraphics[height=1.6in]{figures/diffrast_face/04114/target_hs}%
+        \caption{目标图像}
+    \end{subfigure}%
+    \begin{subfigure}{1.6in}
+        \includegraphics[height=1.6in]{figures/diffrast_face/04114/final_rerendered}%
+        \caption{本文方法}
+    \end{subfigure}%
+    \begin{subfigure}{1.6in}
+        \includegraphics[height=1.6in]{figures/diffrast_face/04114/no_sdf}%
+        \caption{不特殊处理}
+        \label{fig:edge_gradient_no_sdf}
+\end{subfigure}%
     \caption{基于SDF的裁剪边缘处理方法效果}
     \label{fig:edge_gradient}
 \end{figure}
@@ -659,7 +656,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 对于原模型的下巴下方和额头上方的裁剪边缘，不做特殊处理时，可见性梯度试图指引这些边缘向外扩展以对齐到照片中的边缘。
 然而照片中并不存在与之对应的边缘，这些边缘则将一直向外扩展，直到与其他正则化项达到平衡。
 最终导致优化产生的网格与原模型的语义不一致，使得拟合质量劣化，且导致人脸模型重新拼接回完整的人体模型非常困难。
-例如图\ref{fig:edge_gradient}c中，算法将本应位于下巴处的网格用于拟合了照片中的脖子区域。
+例如图\ref{fig:edge_gradient_no_sdf}中，算法将本应位于下巴处的网格用于拟合了照片中的脖子区域。
 使用本文提出的方法即可过滤掉这部分应用在裁剪边缘的梯度，从而避免这种问题。
 
 \section{局限性}
@@ -669,6 +666,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 目前，本文仅能重建较为低频的几何细节，此外未能表示的细节则全部会烘焙在反射率的纹理中。
 本方法重建的几何形状也容易受到刘海，眼睛等遮挡物的影响，导致出现较大偏差。
 这种方式虽然在原始视角和光照条件下渲染时可充分还原照片，但在大幅度改变视角或光照条件时，则会出现明显失真。
+其中最明显的失真现象是新的光源产生的漫反射效果和烘焙在纹理中的镜面反射效果的不一致，它们两者将指示不同的光源方向。
 
 此外，本文所使用的简单的朗伯特反射模型也过于简化，无法建模镜面反射导致的高光，以及人脸的次表面散射现象。
 这同样会导致在改变视角或光照条件时，渲染出的结果出现失真。
