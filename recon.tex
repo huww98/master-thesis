@@ -488,50 +488,51 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 3DMM系数，顶点偏移、拉普拉斯、环境光照、光照修正场强度、梯度的正则项系数分别为
 $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 逆渲染的分辨率为$1024\times1024$，运行了1000次优化迭代。
-本实现在NVIDIA RTX3060显卡上，单张照片的逆渲染优化约需要20秒。
+在优化时，前100次迭代仅优化3DMM的反射率系数和SH光照参数，后续迭代则同时优化所有参数。
+本实现在NVIDIA RTX3060显卡上，单张照片的逆渲染优化约需要16秒。
 
 \subsection{重新渲染效果}
 
 \begin{figure}
 \centering
     \begin{tikzpicture}[
-        node distance=1pt and 0pt,
+        node distance=2pt and 0pt,
         image/.style={inner sep=0pt, outer sep=0pt},
     ]
-        \node (a) [image] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/target_hs}};
-        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/initial}};
-        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/final_rerendered}};
-        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/final_rot_rerendered}};
-        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/final_geo_rerendered}};
-        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/00015/relight}};
+        \node (a) [image] {\includegraphics[height=1.27in]{figures/diffrast_face/00015/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00015/initial}};
+        \node (c) [image,right=of b] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00015/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[height=1.27in,trim={1cm 0 3cm 0},clip]{figures/diffrast_face/00015/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00015/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00015/relight}};
 
-        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/target_hs}};
-        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/initial}};
-        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/final_rerendered}};
-        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/final_rot_rerendered}};
-        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/final_geo_rerendered}};
-        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/00029/relight}};
+        \node (a) [image,below=of a] {\includegraphics[height=1.27in]{figures/diffrast_face/00029/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00029/initial}};
+        \node (c) [image,right=of b] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00029/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[height=1.27in,trim={1cm 0 3cm 0},clip]{figures/diffrast_face/00029/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00029/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00029/relight}};
 
-        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/target_hs}};
-        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/initial}};
-        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/final_rerendered}};
-        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/final_rot_rerendered}};
-        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/final_geo_rerendered}};
-        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/00017/relight}};
+        \node (a) [image,below=of a] {\includegraphics[height=1.27in]{figures/diffrast_face/00017/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00017/initial}};
+        \node (c) [image,right=of b] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00017/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[height=1.27in,trim={1cm 0 3cm 0},clip]{figures/diffrast_face/00017/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00017/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/00017/relight}};
 
-        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/target_hs}};
-        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/initial}};
-        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/final_rerendered}};
-        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/final_rot_rerendered}};
-        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/final_geo_rerendered}};
-        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/04114/relight}};
+        \node (a) [image,below=of a] {\includegraphics[height=1.27in]{figures/diffrast_face/04114/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04114/initial}};
+        \node (c) [image,right=of b] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04114/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[height=1.27in,trim={1cm 0 3cm 0},clip]{figures/diffrast_face/04114/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04114/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04114/relight}};
 
-        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/target_hs}};
-        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/initial}};
-        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/final_rerendered}};
-        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/final_rot_rerendered}};
-        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/final_geo_rerendered}};
-        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/diffrast_face/04038/relight}};
+        \node (a) [image,below=of a] {\includegraphics[height=1.27in]{figures/diffrast_face/04038/target_hs}};
+        \node (b) [image,right=of a] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04038/initial}};
+        \node (c) [image,right=of b] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04038/final_rerendered}};
+        \node (d) [image,right=of c] {\includegraphics[height=1.27in,trim={1cm 0 3cm 0},clip]{figures/diffrast_face/04038/final_rot_rerendered}};
+        \node (e) [image,right=of d] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04038/final_geo_rerendered}};
+        \node (f) [image,right=of e] {\includegraphics[height=1.27in,trim={2cm 0 2cm 0},clip]{figures/diffrast_face/04038/relight}};
 
         \small
         \node [below=of a] {(a)目标图像};
@@ -573,7 +574,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-6}$、$10^{-3}$、$10^{-3}$。
 该贴图对应了图\ref{fig:rerender}中的第一行。
 可见，虽然照片中的人脸有明显的光照效果，纹理贴图中的颜色基本上是均匀的。
 这说明本文实现的光照模型可较好地拟合并解耦照片中的光照效果。
-同时，正脸部分毛孔和胡须的细节也被很好地保留了下来，两侧从照片中看不到的部分也被很好地补全了。
+同时，正脸部分毛孔和胡须的细节也被很好地保留了下来，两侧从照片中看不到的部分也被很好地补全了，且实现了平滑过渡。
 这说明了本文使用的纹理补全方法的有效性。
 
 \subsection{边缘对齐效果比较}
