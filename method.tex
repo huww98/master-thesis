@@ -173,19 +173,19 @@
 
 为了使损失函数成为关于渲染图像$\hat{\mathcal{I}}$的连续函数，我们将图像渲染的过程定义为：
 \begin{equation}
-\hat{\mathcal{I}}(x,y;\theta) \to (\mathbf{c}, \sigma) \quad x,y \in \mathbb{Z}
-\text{。}
+\hat{\mathcal{I}}(i;\theta) \to (\mathbf{c}_i, \sigma_i)
+\text{，}
 \end{equation}
-其中$x,y$为像素坐标，$\theta$为前景模型的参数，$\mathbf{c}\in\mathbb{R}^3$为着色后的像素颜色，且对模型覆盖区域外的像素没有定义，$\sigma\in[0,1]$为前景模型覆盖该像素的覆盖率，即该像素中被模型覆盖的面积占其总面积的比例。
+其中$i$为像素索引，$\theta$为前景模型的参数，$\mathbf{c}_i\in\mathbb{R}^3$为着色后的像素颜色，且对模型覆盖区域外的像素没有定义，$\sigma_i\in[0,1]$为前景模型覆盖该像素的覆盖率，即该像素中被模型覆盖的面积占其总面积的比例。
 $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考虑其关于$\theta$的梯度。
 自然地，对于处在模型内部的像素$\sigma=1$，而对于模型外部的像素$\sigma=0$，
 仅当像素位于模型边界上时，$\frac{\partial\sigma}{\partial\theta}$才不为0，因此处于模型边界上的覆盖率$\sigma$是本节主要考虑的对象。
-需要注意的是，准确地求出每个像素的$\sigma$运算量较大，后文第\ref{sec:method_discuss}节将介绍一种实现方式。
+需要注意的是，准确地求出每个像素的$\sigma$运算量较大，后文第\ref{sec:method_discuss}节将介绍一种基于nvdiffrast的高效实现方式。
 
 基于该定义，我们可以将面积归一化的像素损失函数的定义推广至由离散的像素表示的图像中：
 \begin{equation}
-\mathcal{L}_n = \frac{\sum_{x,y} \sigma \left\| \mathbf{c} - \mathcal{I} \right\|_1}
-{\sum_{x,y} \sigma} - \alpha \sum_{x,y} \sigma
+\mathcal{L}_n = \frac{\sum_{i} \sigma \left\| \mathbf{c} - \mathcal{I} \right\|_1}
+{\sum_{i} \sigma} - \alpha \sum_{i} \sigma
 \text{。}
 \label{eq:loss_n_pixel}
 \end{equation}
@@ -195,12 +195,12 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 对公式\ref{eq:loss_n_pixel}求导可得：
 \begin{equation}
 \frac{\partial\mathcal{L}_n}{\partial\theta} =
-\sum_{x,y}\left[
+\sum_{i}\left[
     \frac{
-        \overbrace{\left\| \mathbf{c} - \mathcal{I} \right\|_1 \sum\sigma}^\text{收缩} -
-        \overbrace{\sum \sigma \left\| \mathbf{c} - \mathcal{I} \right\|_1}^\text{扩展}
-    }{\displaystyle\left(\sum\sigma\right)^2} - \alpha
-\right]\frac{\partial\sigma}{\partial\theta}
+        \overbrace{\textstyle \left\| \mathbf{c}_i - \mathcal{I}_i \right\|_1 \sum_j\sigma_j}^\text{收缩} -
+        \overbrace{\textstyle \sum_j \sigma_j \left\| \mathbf{c}_j - \mathcal{I}_j \right\|_1}^\text{扩展}
+    }{\left(\sum_j\sigma_j\right)^2} - \alpha
+\right]\frac{\partial\sigma_i}{\partial\theta}
 \text{。}
 \end{equation}
 注意在该推导中我们忽略了$\mathbf{c}$关于$\theta$的梯度，这项梯度由具体的着色模型确定，通常可以使用自动微分求得。
@@ -209,7 +209,7 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
     \item 该梯度仅在$\frac{\partial\sigma}{\partial\theta}$不为0时才不为0，因此在计算时仅需考虑处于前景模型边界上的像素；
     \item 其大体可分为收缩和扩展两项，分别将鼓励模型向内收缩其边界和向外扩展其边界；
     \item 当模型边界进入背景区域时，收缩梯度由于边界处误差较大而较大，但扩展梯度由于只依赖于平均误差，因此上升幅度较小，此时收缩梯度将占主导地位，鼓励模型离开背景区域；
-    \item 若拟合误差分布均匀，即$\left\|\mathbf{c} - \mathcal{I}\right\|_1$与$x,y$无关，则收缩和扩展两项梯度相等，此时$\alpha$将轻微地鼓励扩展，以对齐边界。
+    \item 若拟合误差分布均匀，即$\left\|\mathbf{c} - \mathcal{I}\right\|_1$与像素坐标$i$或$j$无关，则收缩和扩展两项梯度相等，此时$\alpha$将轻微地鼓励扩展，以对齐边界。
 \end{enumerate*}
 这些特点均和之前的连续空间定义的损失函数相同。
 
@@ -217,12 +217,12 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 但其中的覆盖率$\sigma$仅在模型边界上才不为0，其余部分的$\sigma$并不需要保存到内存中。因此我们可以实现以下损失函数：
 \begin{equation}
 \tilde{\mathcal{L}}_n =
-\underbrace{\frac{1}{|\mathcal{A}|}\sum_{x,y|\sigma\in(0,1)} \sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1}_{\text{收缩}} -
-\underbrace{\left[\frac{\sum\left\| \mathbf{c} - \mathcal{I} \right\|_1}{|\mathcal{A}|^2}+\alpha\right]\sum_{x,y|\sigma\in(0,1)} \sigma}_{\text{扩展}}
+\underbrace{\frac{1}{|\mathcal{A}|}\sum_{i|\sigma\in(0,1)} \sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1}_{\text{收缩}} -
+\underbrace{\left[\frac{\sum\left\| \mathbf{c} - \mathcal{I} \right\|_1}{|\mathcal{A}|^2}+\alpha\right]\sum_{i|\sigma\in(0,1)} \sigma}_{\text{扩展}}
 \text{，}
 \label{eq:loss_n_tilde}
 \end{equation}
-其中$|\mathcal{A}|$为优化开始时前景模型覆盖的面积，即$\sum_{x,y} \sigma$。
+其中$|\mathcal{A}|$为优化开始时前景模型覆盖的面积，即$\sum_{i} \sigma$。
 由于基于梯度的逆渲染方法通常并不能处理大范围的模型移动，因此该项可以近似看作常数。
 该式也假设了边缘区域相对于整张图片来说是很小的。
 由于该式仅对边缘区域计算，其关于$\mathbf{c}$的梯度也可以忽略。
