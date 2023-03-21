@@ -113,6 +113,8 @@
     \pagestyle{empty}
 }{\newpage}
 
+\RequirePackage{ulem}
+
 \renewcommand{\maketitle}{
     \pagestyle{empty}
     \pagenumbering{Roman}
@@ -121,8 +123,8 @@
         \begin{center}
             \heiti
             \includegraphics[width=0.8\textwidth]{figures/SCUT}\par
-            \zihao{-0}专业学位硕士学位论文\par\vskip 80pt
-            \zihao{2}\@title\par\vskip 80pt
+            \zihao{-0}专业学位硕士学位论文\par\vfill
+            \zihao{2}\uline{\@title}\par\vfill
 
             \zihao{3}
             \hbadness=10000 % suppress warning
