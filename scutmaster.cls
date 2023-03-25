@@ -12,10 +12,11 @@
     a4paper,openany,
     scheme=chinese,
     zihao=-4,
-    fontset=windows,
+    fontset=none,
     linespread=1.625, % 对应Word中的1.5倍行距
 ]{ctexbook}
 
+\xeCJKsetup{AutoFakeBold=true}
 \RequirePackage[
     left=25mm,right=25mm,bottom=25mm,top=25mm,
     headheight=15mm,
@@ -25,6 +26,7 @@
 \setmainfont{Times New Roman}
 
 \ctexset{
+    fontset=windows,
     chapter={
         format=\zihao{-2}\heiti\centering,
         beforeskip=1.0ex plus 1.0ex minus 0.1ex,
@@ -48,7 +50,7 @@
     paragraph={
         beforeskip=0.5ex plus 1ex minus 0.2ex,
     },
-    contentsname={目\quad 录},
+    contentsname={目\texorpdfstring{\quad}{}录},
     listfigurename={插图目录},
     listtablename={表格目录},
 }
@@ -209,24 +211,29 @@
 
 \newcommand{\declareoforiginality}{
     \begin{standalonepage}
+    \linespread{1.2}
     \songti\zihao{4}
     \begin{center}
-        \zihao{2}\linespread{1.0}\selectfont
+        \bfseries\zihao{2}
         华南理工大学\\
         学位论文原创性声明
     \end{center}
+    \vskip\baselineskip
 
     本人郑重声明：所呈交的论文是本人在导师的指导下独立进行研究所取得的研究成果。除了文中特别加以标注引用的内容外，本论文不包含任何其他个人或集体已经发表或撰写的成果作品。对本文的研究做出重要贡献的个人和集体，均已在文中以明确方式标明。本人完全意识到本声明的法律后果由本人承担。
 
-    \vskip 5pt\noindent
+    \vskip\baselineskip\noindent
     作者签名：\hspace{10em} 日期：\dateform
 
+    \vfill
     \begin{center}
-        \zihao{2}
+        \bfseries\zihao{2}
         学位论文版权使用授权书
     \end{center}
+    \vskip 2ex
 
     本学位论文作者完全了解学校有关保留、使用学位论文的规定，即：研究生在校攻读学位期间论文工作的知识产权单位属华南理工大学。学校有权保存并向国家有关部门或机构送交论文的复印件和电子版，允许学位论文被查阅（除在保密期内的保密论文外）；学校可以公布学位论文的全部或部分内容，可以允许采用影印、缩印或其它复制手段保存、汇编学位论文。本人电子文档的内容和纸质论文的内容相一致。
+
     本学位论文属于：
 
     \begin{itemize}
@@ -237,15 +244,15 @@
 
     (请在以上相应方框内打“$\checkmark$”)
 
-    \vskip 5pt\noindent
-    \begin{tabularx}{\textwidth}{lX}
+    \vskip\baselineskip\noindent%
+    \begin{tabular}{@{}ll@{}}
     作者签名：    & 日期：\dateform\\
     指导教师签名：& 日期：\dateform\\
     作者联系电话：\@phone & 电子邮箱：\@email\\
-    \multicolumn{2}{p{\linewidth}}{
+    \multicolumn{2}{@{}p{\linewidth}@{}}{
         联系地址(含邮编)：\@address
     }
-    \end{tabularx}
+    \end{tabular}
     \end{standalonepage}
 }
 
