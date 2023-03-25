@@ -12,7 +12,7 @@
     a4paper,openany,
     scheme=chinese,
     zihao=-4,
-    fontset=ubuntu,
+    fontset=windows,
     linespread=1.5
 ]{ctexbook}
 
@@ -128,7 +128,7 @@
 
             \zihao{3}
             \hbadness=10000 % suppress warning
-            \begin{tabular}{w{s}{6.5em} c}
+            \begin{tabular}{W{s}{6.5em} W{c}{6.5em}}
                 \hideinblind{
                     作者姓名 & \@author\\
                     \cline{2-2}

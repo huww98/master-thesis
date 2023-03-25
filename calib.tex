@@ -242,7 +242,7 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
 
 \begin{figure}
     \centering
-    \import{build/figures}{stab_ablation.pgf}
+    \import{build/figures/}{stab_ablation.pgf}
     \caption[不同相机的重投影误差]{同一次标定中不同相机第一阶段的重投影误差。其中，10号相机开启了光学防抖，其余相机关闭了光学防抖。}
     \label{fig:stablize_ablation}
 \end{figure}
@@ -258,11 +258,11 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
         OpenCV中实现的各种相机畸变模型对标定精度的影响。加粗数字为本文最终使用模型。
         该结果中未排除误差较大的角点。
     }
-    \begin{tabular}{l|S[table-format=2.3] S[table-format=1.3]}
+    \begin{tabular}{l|rr}
         \toprule
         畸变模型(参数数量) & \shortstack{集束调整前\\重投影误差（像素）} & 重投影误差（像素） \\
         \midrule
-        无畸变 (0) & 20.22 & 7.01 \\
+        无畸变 (0) & 20.220 & 7.011 \\
         默认 (5) & 0.917 & \textbf{0.455} \\
         rational (8) & 0.762 & 0.462 \\
         thin prism (12) & 1.314 & 0.445 \\
@@ -280,7 +280,7 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
 
 \begin{figure}
     \centering
-    \import{build/figures}{corner_fit.pgf}
+    \import{build/figures/}{corner_fit.pgf}
     \small
     (a) 不同标定板角度下的精度对比\hfill
     (b) 不同失焦模糊下的精度对比\hfill
@@ -300,19 +300,19 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
 \begin{figure}
     \centering
     \begin{subfigure}{1.57in}
-        \import{build/figures}{corner_gain-14_0023_opencv.pgf}%
+        \import{build/figures/}{corner_gain-14_0023_opencv.pgf}%
         \caption{OpenCV, 增益$2^{14}$}%
     \end{subfigure}%
     \begin{subfigure}{1.57in}
-        \import{build/figures}{corner_gain-10_0023_opencv.pgf}%
+        \import{build/figures/}{corner_gain-10_0023_opencv.pgf}%
         \caption{OpenCV, 增益$2^{10}$}%
     \end{subfigure}%
     \begin{subfigure}{1.57in}
-        \import{build/figures}{corner_gain-14_0023_saddle.pgf}%
+        \import{build/figures/}{corner_gain-14_0023_saddle.pgf}%
         \caption{本文, 增益$2^{14}$}%
     \end{subfigure}%
     \begin{subfigure}{1.57in}
-        \import{build/figures}{corner_gain-10_0023_saddle.pgf}%
+        \import{build/figures/}{corner_gain-10_0023_saddle.pgf}%
         \caption{本文, 增益$2^{10}$}%
     \end{subfigure}%
     \caption[较严重失焦时的角点定位结果]{
