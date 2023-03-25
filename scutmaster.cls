@@ -13,7 +13,7 @@
     scheme=chinese,
     zihao=-4,
     fontset=windows,
-    linespread=1.5
+    linespread=1.625, % 对应Word中的1.5倍行距
 ]{ctexbook}
 
 \RequirePackage[
@@ -46,9 +46,11 @@
         afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
     paragraph={
-        beforeskip=1.0ex plus 1.0ex minus 0.1ex,
-        afterskip=1.0ex plus 0.5ex minus 0.1ex,
+        beforeskip=0.5ex plus 1ex minus 0.2ex,
     },
+    contentsname={目\quad 录},
+    listfigurename={插图目录},
+    listtablename={表格目录},
 }
 \setlength{\parskip}{0pt plus 2pt}
 
@@ -58,6 +60,7 @@
     parsep =0pt plus 2pt,
     topsep =1pt plus 2pt minus .5pt,
 }
+\setlist[enumerate,1]{label=(\arabic*)}
 
 \RequirePackage{algorithm}
 \RequirePackage{algpseudocode}
@@ -260,6 +263,7 @@
 
 \RequirePackage{gbt7714}
 \bibliographystyle{gbt7714-numerical}
+\setlength\bibsep{1pt plus 1pt minus .5pt}
 
 \RequirePackage{tocbibind}
 
