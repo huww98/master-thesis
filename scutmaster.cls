@@ -88,6 +88,7 @@
 }
 
 \newcommand{\keyword}[1]{
+    \vskip\baselineskip
     \paragraph{#1}
 }
 
