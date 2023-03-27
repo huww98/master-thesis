@@ -48,6 +48,7 @@
         afterskip=1.0ex plus 0.5ex minus 0.1ex,
     },
     paragraph={
+        indent=\parindent,
         beforeskip=0.5ex plus 1ex minus 0.2ex,
     },
     contentsname={目\texorpdfstring{\quad}{}录},
@@ -76,6 +77,9 @@
 \renewcommand{\theequation}{\arabic{chapter}-\arabic{equation}}
 \renewcommand{\thetable}{\arabic{chapter}-\arabic{table}}
 \renewcommand{\thefigure}{\arabic{chapter}-\arabic{figure}}
+
+\RequirePackage{caption}
+\captionsetup{labelsep=space}
 
 \RequirePackage{fancyhdr}
 \pagestyle{fancy}
