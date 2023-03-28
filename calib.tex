@@ -19,74 +19,31 @@
 其中$\mathbf{r}\in \mathbb{R}^3$为表示三维旋转群$\mathrm{SO(3)}$的的指数映射向量，
 其表示轴为$\mathbf{r}$，角度为$\left\| \mathbf{r}\right\|$的旋转。
 世界坐标系的选取是任意的，因此在相机标定阶段，不失一般性地，我们选择第一次快门触发时的标定板坐标系为世界坐标系。
-综上，在标定过程中共需要求解$N\times 15$个参数，记为$\delta$。
-
-在该模型下，对于任意在世界坐标系下的点$\mathbf{X}\in \mathbb{R}^3$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
-首先，应用罗德里格斯公式\cite{rodrigues}，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
-\begin{align}
-    \theta &= \left\|r\right\|_2 \\
-    \hat{\mathbf{r}} &= \mathbf{r}/ \theta \\
-    \mathbf{R} &= \cos(\theta) I + (1- \cos{\theta} ) \hat{\mathbf{r}} \hat{\mathbf{r}}^\mathsf{T} + \sin(\theta) \begin{bmatrix}
-         0   & -\hat{\mathbf{r}}_z & \hat{\mathbf{r}}_y \\
-         \hat{\mathbf{r}}_z & 0    & -\hat{\mathbf{r}}_x \\
-        -\hat{\mathbf{r}}_y &  \hat{\mathbf{r}}_x & 0
-    \end{bmatrix}\label{eq:rodrigues} \\
-    \mathbf{X}' &= \mathbf{R} \mathbf{X} + \mathbf{t}\text{，}
-\end{align}
-然后，将$\mathbf{X}'$投影到第$i$个相机的成像平面，即
-\begin{equation}
-    \mathbf{x}'' = \begin{bmatrix}
-        \mathbf{X}'_x / \mathbf{X}'_z \\
-        \mathbf{X}'_y / \mathbf{X}'_z
-    \end{bmatrix}\text{，}
-\end{equation}
-对$\mathbf{x}''$应用镜头畸变，即
-\begin{equation}
-    \mathbf{x}' = \left(1 + k_1 r^2 + k_2 r^4 + k_3 r^6\right) \mathbf{x}'' + \begin{bmatrix}
-        2 p_1 \mathbf{x}''_x \mathbf{x}''_y + p_2 \left(r^2 + 2 (\mathbf{x}''_x)^2\right) \\
-        p_1 \left(r^2 + 2 (\mathbf{x}''_y)^2\right) + 2 p_2 \mathbf{x}''_x \mathbf{x}''_y
-    \end{bmatrix}\text{，}
-\end{equation}
-其中$r = \left\|\mathbf{x}''\right\|_2$。最后，将$\mathbf{x}'$映射到以左上角为原点的像素坐标系，即
-\begin{equation}
-    \mathbf{x} = \begin{bmatrix}f_x & 0 \\ 0 & f_y \end{bmatrix} \mathbf{x}' + \begin{bmatrix}c_x \\ c_y \end{bmatrix}\text{。}
-\end{equation}
-以上过程可称为相机投影，记为$\pi(\delta_i, \cdot)$。
+\def\camparam{\delta}
+综上，在标定过程中共需要求解$N\times 15$个参数，记为$\camparam$。
+在该模型下，对于任意在世界坐标系下的点$\mathbf{X}\in \mathbb{R}^3$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$的计算过程可称为相机投影，记为$\mathbf{x}^{(i)}=\pi(\camparam_i, \mathbf{X})$。
 
 为了解算上述模型中的参数，通常需要使用待标定的相机对一类特殊的物体进行拍摄，称为标定物体。
 它们的特点是通常有一些在照片中容易被计算机视觉算法识别的特征点，且这些点容易在不同相机拍摄的照片间进行匹配。
 这类物体通常为标定板，即印有棋盘格、二维码、圆形或者其他易于识别的图案的硬质平面板子。
 也有一些方法\cite{colmap}使用SIFT等特征点算法来自动从任意被拍摄物体上提取和匹配特征点。但这种方法匹配成功率稍低，且忽略了物体反射光线的各向异性，因此可能会带来一些误差。
 
-\begin{figure}
-    \centering
-    \includegraphics[height=0.5\textwidth]{figures/april_board}
-    \caption{April Board上印制的二维码和棋盘格图案}
-    \label{fig:april_board}
-\end{figure}
-
-本方案中使用的标定物体为April Board，即印有二维码和棋盘格组成的图案的标定板，如图\ref{fig:april_board}所示。
-该标定板的尺寸为$800 \times 800$毫米，每个二维码的边长为$88$毫米。
-该图案中棋盘格的十字角点可由算法精确完成亚像素级定位，而密集的二维码则便于在不同照片中便捷地匹配角点。
-其采用了玻璃基板，以保证标定板的刚性和平整度；
-同时采用了氧化铝表面，使标定板表面无明显镜面反射光斑，确保标定板在不同光照条件下的可靠性。
-
-在拍摄标定物体时，首先将相机固定到支架上，将任意物体摆放至预计人脸的位置作为调节的参照，并完成相机角度调节和对焦操作。
-将相机切换至手动对焦模式，关闭光学防抖，以防止其内外参意外发生变化。
-然后，撤走参照物，将标定板放在该位置，使用前述（第\ref{sec:passive_sync}节）被动相机同步装置同时触发所有相机进行拍摄。转动标定板，重复触发快门15-20次。
-
-\paragraph{相机标定原理}本方案中的相机标定算法接收照片中的特征点坐标作为输入，求解上述相机模型中的参数$\delta$。
-正式地，假设共触发了$M$次快门，标定板中共有$K=144$个角点，算法的输入包括第$i$个相机在第$j$次触发快门时拍摄的第$k$个角点（$j = 1,2,\cdots,M$、$k = 1,2,\cdots,K$）在像素坐标系中的坐标$o_{i,j,k}\in \mathbb{R}^2$；
-以及角点在标定板坐标系中的坐标$w_k\in \mathbb{R}^3$。
+\paragraph{相机标定优化目标}
+\def\cornerpix{\mathbf{o}}
+\def\cornerboard{\mathbf{w}}
+本方案中的相机标定算法接收照片中的特征点坐标作为输入，求解上述相机模型中的参数$\camparam$。
+正式地，假设共触发了$M$次快门，标定板中共有$K=144$个角点，算法的输入包括第$i$个相机在第$j$次触发快门时拍摄的第$k$个角点（$j = 1,2,\cdots,M$、$k = 1,2,\cdots,K$）在像素坐标系中的坐标$\cornerpix_{i,j,k}\in \mathbb{R}^2$；
+以及角点在标定板坐标系中的坐标$\cornerboard_k\in \mathbb{R}^3$。
 由于每次触发快门时标定板都由人工转动，因此其在世界坐标系中的位置也是未知的，故将第$j$次快门时标定板坐标系到世界坐标系的刚体变换$T_{j}(\cdot)\in \mathrm{SE(3)}$也做为未知量。
 其中固定$T_{1}$为幺元，即$T_{1}(X) = X$，以确定世界坐标系的位置。
 则本文中的相机标定问题可以表示为以下最小二乘优化问题：
 \begin{equation}
     \label{eq:calib_opt}
-    \argmin_{\delta,T} \sum_{i,j,k} \left\| o_{i,j,k} - \pi\left(\delta_i, T_j(w_k)\right) \right\|_2^2
+    \argmin_{\camparam,T} \sum_{i,j,k} \left\| \cornerpix_{i,j,k} - \pi\left(\camparam_i, T_j(\cornerboard_k)\right) \right\|_2^2
+    \text{。}
 \end{equation}
-
-本节剩余部分将介绍角点的识别、精确定位，模型初始化及上述优化问题的具体求解方法。
+为实现该目标，首先需要在每张照片中识别角点，并以亚像素级精度精确定位其坐标$\cornerpix_{i,j,k}$。
+本节后续将介绍角点的识别、精确定位，模型初始化及上述优化问题的具体求解方法。
 
 \paragraph{二维码、角点识别}为识别标定板中可供拟合的角点，本文首先识别照片中的二维码，并将二维码的四个角作为角点的候选点。
 本文所用标定板上的二维码为AprilTag，本文实现的识别算法也是基于其开源的方法\cite{AprilTag}。
@@ -109,7 +66,7 @@
 
 由于我们所拍摄的照片分辨率远超二维码识别所需，因此本文先对照片进行降采样。
 其具体方法是，首先只取$I^{G1}$，以排除颜色对二维码识别的影响。
-再对$I^{G1}$进行5倍平均池化，即降采样后的照片$\Idown$的尺寸为$\frac{H}{10}\times \frac{W}{10}$。以此降低算法耗时并大大降低照片中的噪声等级，提升算法的鲁棒性。
+再对$I^{G1}$进行5倍平均池化，即降采样后的照片$\Idown$的尺寸为$\frac{H}{10}\times \frac{W}{10}$。以降低算法耗时并大大降低照片中的噪声等级，提升算法的鲁棒性。
 在的分辨率的图像上完成二维码识别后，二维码的四个角的坐标$\odown$将被重新映射回完整分辨率的像素坐标，以初始化后续的精确定位步骤：
 \begin{equation}
     \tilde{o} = 10 \cdot \odown + [5,4]
@@ -148,15 +105,14 @@
     \hat{a} = \argmin_{a} \sum_{x,y} \left(\bar{I}(x, y) - (a_0 x^2 + a_1 y^2 + a_2 xy + a_3 x + a_4 y + a_5)\right)^2\text{。}
 \end{equation}
 在实现上，本方案直接使用解析公式求解该线性最小二乘问题。并求该二维多项式函数的鞍点作为该角点新的估计位置：
-\begin{equation*}
-    \Delta = 4 \hat{a}_0 \hat{a}_1 - \hat{a}_2^2
-\end{equation*}
 \begin{equation}
     \label{eq:subpixel}
     \begin{cases}
-        x' = -\frac{\hat{a}_2 \hat{a}_4 - 2 \hat{a}_1 \hat{a}_3}{\Delta} \\
-        y' = -\frac{\hat{a}_2 \hat{a}_3 - 2 \hat{a}_0 \hat{a}_4}{\Delta}
-    \end{cases}\text{，}
+        x' &= -\dfrac{\hat{a}_2 \hat{a}_4 - 2 \hat{a}_1 \hat{a}_3}{\Delta} \\
+        y' &= -\dfrac{\hat{a}_2 \hat{a}_3 - 2 \hat{a}_0 \hat{a}_4}{\Delta}
+    \end{cases},\quad
+    \Delta = 4 \hat{a}_0 \hat{a}_1 - \hat{a}_2^2
+    \text{，}
 \end{equation}
 并如此迭代，直到角点的估计位置收敛，该收敛的位置即为$o$。
 在此过程中，若估计位置超出了图像范围，或$\Delta < 0$，则将该角点排除。
@@ -218,150 +174,4 @@ $\Delta < 0$的原因通常是该角点被其他物体遮挡，或者受到其�
 
 然后，排除掉误差较大的角点，再次重复上述优化过程，并如此迭代数次，每次使用更严格的误差阈值进行排除。
 这些误差较大的角点通常是由于角点定位不准确造成的，因此，将其排除后可以提高标定的精度。
-
-\paragraph{标定结果和误差分析}
-
-由于本文采用的模型参数量小，且角点数量多（约15000个），基本没有过拟合的风险。
-因此本文并未单独划分验证集，而是直接使用所有的角点的重投影误差作为标定精度的评价标准。
-平均重投影误差定义为：
-\begin{equation}
-    \label{eq:reproj_err}
-    \text{reproj\_err} = \frac{1}{\|O\|}\sum_{(i,j,k)\in O}\left\|o_{i,j,k} - \pi\left(\delta_i, T_j(w_k)\right)\right\|_2
-    \text{，}
-\end{equation}
-其中，$O$为所有可用角点集合。注意该指标与公式\eqref{eq:calib_opt}中的目标函数有所不同，该指标是所有角点的重投影误差的算术平均，以便于进行下文中的各种统计。
-上述方法最终获得的平均重投影误差为0.38像素。
-以下将对可能影响标定精度的各个因素进行分析：
-
-\begin{enumerate}
-\item 自动对焦：由于现实中的相机不是理想的针孔相机，仅有处于焦平面上的物体能清晰成像。
-为获得清晰的照片，相机通常默认会开启自动对焦。即通过电机驱动镜片移动，以改变焦平面的距离。
-但不幸的是，镜片的移动同样也会导致相机的成像参数发生较大变化，从而无法达到较高的标定精度。
-在实践中，若开启了自动对焦，我们则无法获得优于5像素的重投影误差。
-因此，在标定和采集数据时设置手动对焦是非常必要的。
-
-\begin{figure}
-    \centering
-    \import{build/figures/}{stab_ablation.pgf}
-    \caption[不同相机的重投影误差]{同一次标定中不同相机第一阶段的重投影误差。其中，10号相机开启了光学防抖，其余相机关闭了光学防抖。}
-    \label{fig:stablize_ablation}
-\end{figure}
-
-\item 光学防抖：为尽量避免相机机身震动引起的运动模糊，本文使用的镜头配备有光学防抖功能。该功能的原理也是通过电机驱动镜片运动以抵消相机机身的运动的影响。
-但是即使本文中的相机是固定在支架上的，光学防抖功能仍然会导致外参的轻微变化。
-如图\ref{fig:stablize_ablation}所示，图中仅10号相机开启了防抖，而其重投影误差超出了其他相机近一倍。
-因此，关闭光学防抖将有助于提高标定精度。但需注意，关闭防抖后，每次物理接触相机调节参数等之后，再次拍摄前均需要等待5-10秒，以允许整个支架系统恢复稳定。
-
-\begin{table}[htb]
-    \centering
-    \caption[相机畸变模型对标定精度的影响]{
-        OpenCV中实现的各种相机畸变模型对标定精度的影响。加粗数字为本文最终使用模型。
-        该结果中未排除误差较大的角点。
-    }
-    \begin{tabular}{l|rr}
-        \toprule
-        畸变模型(参数数量) & \shortstack{集束调整前\\重投影误差（像素）} & 重投影误差（像素） \\
-        \midrule
-        无畸变 (0) & 20.220 & 7.011 \\
-        默认 (5) & 0.917 & \textbf{0.455} \\
-        rational (8) & 0.762 & 0.462 \\
-        thin prism (12) & 1.314 & 0.445 \\
-        tilted (14) & 0.744 & 0.449 \\
-        \bottomrule
-    \end{tabular}
-    \label{tab:distortion}
-\end{table}
-
-\item 相机畸变模型：相机镜头会带来少量畸变，从而使成像结果与理想的针孔相机成像结果有所差异。
-本方案使用了OpenCV中默认的具有5个参数的畸变模型，以建模这种差异。
-图\ref{tab:distortion}展示了使用不同畸变模型时重投影误差。
-可见本文所使用的相机具有不可忽视的镜头畸变，对畸变进行建模可大幅提高标定精度。
-另一方面，使用更为复杂的畸变模型则没有明显的优势。
-
-\begin{figure}
-    \centering
-    \import{build/figures/}{corner_fit.pgf}
-    \small
-    (a) 不同标定板角度下的精度对比\hfill
-    (b) 不同失焦模糊下的精度对比\hfill
-    (c) 不同噪音下的精度对比
-    \caption[OpenCV与本文使用的角点定位算法的精度对比]{
-        OpenCV与本文使用的角点定位算法的精度对比。
-        带有噪音的图像服从柏松分布，
-        增益表示在传感器取得最大读数时接收的电子数量，增益越高，噪声越小。
-        在Blender渲染的全部1000张图像中，
-        (a)展示了增益$2^{14}$时距离焦平面-0.3至0.2米的图像中，误差与标定版角度的关系；
-        (b)展示了增益$2^{14}$时倾斜角度70°以下的图像中，误差与失焦模糊程度的关系；
-        (c)展示了距离焦平面-0.3至0.2米且倾斜角度70°以下的图像中，误差与噪音强度的关系。
-    }
-    \label{fig:corner_fit}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \begin{subfigure}{1.57in}
-        \import{build/figures/}{corner_gain-14_0023_opencv.pgf}%
-        \caption{OpenCV, 增益$2^{14}$}%
-    \end{subfigure}%
-    \begin{subfigure}{1.57in}
-        \import{build/figures/}{corner_gain-10_0023_opencv.pgf}%
-        \caption{OpenCV, 增益$2^{10}$}%
-    \end{subfigure}%
-    \begin{subfigure}{1.57in}
-        \import{build/figures/}{corner_gain-14_0023_saddle.pgf}%
-        \caption{本文, 增益$2^{14}$}%
-    \end{subfigure}%
-    \begin{subfigure}{1.57in}
-        \import{build/figures/}{corner_gain-10_0023_saddle.pgf}%
-        \caption{本文, 增益$2^{10}$}%
-    \end{subfigure}%
-    \caption[较严重失焦时的角点定位结果]{
-        较严重失焦时的角点定位结果。
-        左边两幅图展示了OpenCV的cornerSubPix算法在不同噪音强度时的结果，
-        右边两幅图展示了本文所实现的算法的结果。
-        图中的红色圆点表示100次随机初始化的收敛位置，
-        绿色点表示角点位置真值。
-        可见OpenCV无法正确收敛，在相同的半径参数下，本文所实现的算法可处理更大的失焦程度。
-    }
-    \label{fig:corner_blur}
-\end{figure}
-
-\item 角点定位算法：角点定位的精度是决定标定精度的关键因素。
-为验证本文所实现的算法的性能，本文使用Blender的Cycles渲染器生成了1000张的标定板角点的图像，
-这些角点具有随机的位置、角度、失焦模糊和噪声，
-并在这组图像上将本文所实现的算法和OpenCV的cornerSubPix算法进行了对比。
-具体方法是使用同样的半径$r=15$，使用不同算法分别在每张图像的角点真值附近$10\times 10$像素的范围内随机初始化100次，并优化到收敛，然后统计每张图像的平均重投影误差。
-如图\ref{fig:corner_fit}所示，本文在整体精度上大幅优于OpenCV的算法，且在应对极端角度，失焦模糊，随机噪声这些采集中经常出现的情况也有较高的鲁棒性。
-而OpenCV的算法在较严重的失焦时则无法正确收敛（如图\ref{fig:corner_blur}）。
-
-\item 角点定位失败造成的外点：由于角点被其他物体遮挡，或者受到其他物体投下的阴影影响，偶尔角点定位会收敛到错误的位置，造成外点。
-但这样的点很少，通常在几十个，因此在实践中未观察到对标定精度有显著的影响。
-但是，在统计损失函数或平均重投影误差时，排除这些点可使所得统计数据更能代表整体标定精度。
-
-\begin{table}
-    \centering
-    \caption[不同后处理方案对标定精度的影响]{
-        不同后处理方案对标定精度的影响。
-        离群点为重投影误差大于3像素的点，这些点在集束调整和数据统计时被排除。
-    }
-    \begin{tabular}{l|rrrr}
-        \toprule
-        图像源 & \shortstack{定位成功\\角点数} & 离群点 & \shortstack{平均重投影误差\\（像素）}& \shortstack{中位数重投影误差\\（像素）} \\
-        \midrule
-        原始图像（本文） & 14579 & 21 & 0.4250 & 0.3634 \\
-        相机JPG预览图   & 14589 & 18 & 0.4138 & 0.3518 \\
-        佳能DPP后处理   & 14592 & 16 & 0.4120 & 0.3515 \\
-        \bottomrule
-    \end{tabular}
-    \label{tab:camera_postprocess}
-\end{table}
-
-\item 相机后处理：数码相机为呈现更加视觉友好的图像，会对采集的数据进行一系列后处理，如去马赛克，gamma映射、降噪、锐化、白平衡等。
-为验证这些功能对标定精度可能的影响，本文对比了使用处理前和处理后的数据标定的重投影误差，如表\ref{tab:camera_postprocess}所示。
-其中后处理使用的是佳能Digital Photo Professional软件，并在默认设置的基础上开启了数码镜头优化，未开启镜头畸变校正，并统一了所有照片的白平衡设置，最终导出为16位TIFF格式图像以保留尽可能高的精度。
-它处理一张图片需要约30秒，每次标定采集的数百张图片来说需要耗费的时间相当可观。
-此外，本文还对比了相机自动嵌入在原始数据文件中的一张JPG格式的预览图。
-结果显示，后处理能略微提升标定精度，并将重投影误差降低0.01像素。使用DPP软件后处理则与预览图相当。
-在后处理过程中，佳能可以利用相机和镜头制造的信息以优化结果。
-然而佳能的后处理算法并不公开，因此为了保持全流程的可控，且考虑到提升幅度不大，本方案依然选择了使用原始图像进行标定。
-\end{enumerate}
+该优化过程最终得到的相机参数$\camparam$，即为所求的最终的相机标定结果。

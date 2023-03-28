@@ -56,61 +56,53 @@
 
 \subsection{支撑机械结构设计}
 
-\begin{tikzpicture}[
-    every node/.style={anchor=north west, minimum height=0.8cm},
-]
-\node [draw, minimum width=6cm] (A) at (0,0) {相机支架底座};
-\node [draw, minimum width=2.4cm] (layer1) at (0,1) {高度层};
-\node [draw, minimum width=2.4cm, right=0 of layer1] (layer2) {高度层};
-\node [draw, minimum width=1.2cm] (camera1) at (0,2) {相机};
-\node [draw, minimum width=1.2cm, right=0 of camera1] (camera2) {相机};
-\node [draw, minimum width=1.2cm, right=0 of camera2] (camera3) {相机};
-\node [draw, minimum width=1.2cm, right=0 of camera3] (camera4) {相机};
-\node [draw, minimum width=1.2cm, base right=0 of layer2, minimum height=1.8cm] (camera5) {相机};
-\node [draw, right=of A] (B) {灯架};
-\end{tikzpicture}
-
-本方案的硬件框架结构设计主要是参考了\citet{RiviereGBGB20}所展示的布局。
-首批配置了12台相机和4台带有柔光箱的摄影灯，其中相机固定在3个铝型材搭建的、定制的、高自由度可调节的支架上。
-灯则由于其体积质量较大，且市面上缺少相应的单独连接件产品，无法稳固地固定在支架上，因此直接使用了单独的专用灯架固定，以确保安全。
-图\ref{fig:HDRI}展示了该系统硬件的整体布局。
-
+本方案的第一步是将相机和灯光固定在实验场地中，使其在采集和标定过程中保持空间位置不变。
+同时，为了灵活性和可扩展性，该方案还应能支持各个设备能以较高自由度，较方便地调整位置。
 \begin{figure}
-\centering
-\begin{subfigure}[b]{0.3\textwidth}
+\begin{subfigure}{0.67\textwidth}
     \centering
-    \includegraphics[height=7cm]{figures/frame-design}
-    \caption{设计图}
-\end{subfigure}
-\begin{subfigure}[b]{0.2\textwidth}
-    \centering
-    \includegraphics[height=7cm]{figures/frame-impl}
-    \caption{组装完成照片}
-\end{subfigure}
-\begin{subfigure}[b]{0.47\textwidth}
-    \centering
-    \includegraphics[height=7cm]{figures/frame-camera}
-    \caption{相机固定}
-\end{subfigure}
-\caption{铝型材支架的设计和实现}
+    \begin{tikzpicture}[
+        node distance=.5cm and .5cm,
+        every node/.style={anchor=south west, minimum height=0.8cm, draw, outer sep=0},
+        cam/.style={minimum width=1.2cm, fill=brown!20},
+        light/.style={fill=brown!20},
+        support/.style={fill=blue!30},
+        support_layer/.style={fill=blue!15},
+        diffuser/.style={fill=gray!20},
+    ]
+        \node [support, minimum width=7.2cm] (A) at (0,0) {相机支架基座};
+        \node [support_layer, minimum width=2.4cm] (layer1) at (0,1) {高度层};
+        \node [support_layer, minimum width=2.4cm, right=0 of layer1] (layer2) {高度层};
+        \node [cam] (camera1) at (0,2) {相机};
+        \node [cam, right=0 of camera1] (camera2) {相机};
+        \node [cam, right=0 of camera2] (camera3) {相机};
+        \node [cam, right=0 of camera3] (camera4) {相机};
+        \node [cam, minimum height=1.8cm] (camera5) at (layer2.south east) {相机};
+        \node [cam, right=0 of camera5, minimum height=1.8cm] (camera6) {相机};
+        \node [draw=none, above=2.2cm of A] {相机支架};
+
+        \node [support, minimum width=3cm, right=of A] (B) {灯架};
+        \path (B.south west) ++(0,1cm) node [light, minimum width=3cm] {摄影灯/闪光灯};
+        \path (B.south west) ++(0,2cm) node [diffuser, minimum width=3cm] {柔光箱};
+        \node [draw=none, above=2.2cm of B] {灯支架};
+    \end{tikzpicture}
+    \caption{硬件拓扑结构}
+    \label{fig:frame_topo}
+\end{subfigure}\hfill%
+\begin{subfigure}{0.3\textwidth}
+    \includegraphics[width=\textwidth]{figures/frame-design}
+    \caption{相机支架设计图}
+    \label{fig:frame_cam}
+\end{subfigure}%
+\caption{支撑机械结构设计}
 \label{fig:frame}
 \end{figure}
-
-图\ref{fig:frame}展示了铝型材支架的设计和实现。
-单个支架的主体部分由4个2寸脚轮，12.47米3030铝型材以及若干连接件组成。
-设计全高2.103米，长1.06米，宽0.53米。
-其物料成本约需要700元。
-考虑到实验场地可能的变动，支架装配有4个脚轮，方便移动，且这些脚轮带有锁定功能，在使用时也能固定支架的位置。
-脚轮固定在矩形底座上，底座则通过大量连接件，尽可能稳固地支撑了两根2米长的竖直铝型材。
-在竖杆之间设计有4根长1米的横杆。
-每两根间设计间距为0.5米，但得益于本方案使用T型螺母固定，无需打孔，因此这些横杆的位置可根据需要随时调整。
-
-相机可固定在任意竖杆和横杆上的任意位置。
-为固定相机，本方案首先将T型连接板通过T型螺母固定在铝型材上，然后将一个球形云台通过1/4英寸螺栓固定在连接板上，最后将相机通过标准的1/4英寸接口固定在云台上。
-使用云台可允许相机以三个自由度任意旋转，再加上相机固定位置，横杆位置，以及支架整体的移动，相机最终固定位置的可调节自由度非常高。
-
-总的来说，该支架支撑稳定，使用灵活，完全满足了固定12台相机的需求，为其他部分的实现打下了良好的基础。
-同时，通过增加横杆，或增加支架数量的方式，也可以扩展更多相机固定位置。
+各设备的整体拓扑结构如图\ref{fig:frame_topo}所示。
+由于摆放空间限制，无法使用三脚架摆放足够数量的相机，因此，本方案包含了一个专用的相机支架，如图\ref{fig:frame_cam}所示。
+相机可通过球形云台固定在支架中任意竖杆或高度层上的任意位置。
+使用云台可允许相机以三个自由度任意旋转，再加上相机固定位置，高度层位置，以及支架整体的移动，相机最终固定位置的可调节自由度非常高。
+同时，通过增加高度层，或增加支架数量的方式，也可以扩展更多相机固定位置。
+摄影灯具则由于其体积质量较大，且市面上缺少相应的单独连接件产品，无法稳固地固定在自制的支架上，因此本方案直接使用了单独的专用灯架固定，以确保安全。
 
 \subsection{被动相机同步}
 \label{sec:passive_sync}
@@ -121,7 +113,7 @@
 为此，本方案中设计了一种用于相机同步的硬件装置。
 该装置构造简单，且无须独立供电。它能以很高的时间精度同时触发多台相机的对焦和快门，从而实现人脸多视角数据的捕获。
 
-\paragraph{相机快门触发原理}
+\paragraph{相机快门触发方式选择}
 
 为设计该装置，本文首先调查了所使用的相机所有可能的快门触发方式，包括：
 \begin{itemize}
@@ -136,25 +128,11 @@
 \end{itemize}
 基于这些考虑，本方案最终使用了快门线接口作为相机同步的触发方式。
 
-用于快门线接口的2.5mm插头如图\ref{fig:2.5mm}所示。
-该插头的接触部分呈旋转对称的柱体，柱体不同高度上分布有3个独立的接触区域，分别对应对焦控制、快门控制和地线。
-其中两根控制线待机时为带有上拉的输入端口，电压为3.3v。当其与地线短接，从而拉至低电平时，即可触发对应的控制。
-此外，当手动按下相机快门按钮时，这些控制线也会输出低电平，以便于控制其他外设。
-
 \begin{figure}
-\centering
-\begin{minipage}{.5\textwidth}
-    \centering
-    \includegraphics[height=3cm]{figures/2.5mm}
-    \captionof{figure}{快门线接口的2.5mm插头}
-    \label{fig:2.5mm}
-\end{minipage}%
-\begin{minipage}{.5\textwidth}
     \centering
     \includegraphics[height=5cm]{figures/passive_sync_topo}
-    \captionof{figure}{被动同步装置的连接拓扑结构}
+    \caption{被动同步装置的连接拓扑结构}
     \label{fig:passive_sync_topo}
-\end{minipage}%
 \end{figure}
 
 \paragraph{被动同步装置设计}
@@ -166,59 +144,6 @@
 该结构可通过增加控制器的方式近乎无限扩展，从而实现对更多相机的控制。
 此外，每个控制器上都是对等的，通过任意一个控制器上的按钮均可控制所有相机。
 这提升了系统操作的便捷性。
-
-\begin{figure}
-\includegraphics[width=\textwidth]{figures/passive_sync_schematic}
-\caption{被动控制器的电路原理图}
-\label{fig:passive_sync_schematic}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[height=5cm]{figures/passive_sync_controller}
-\caption{被动控制器的实物图}
-\end{figure}
-
-其中，每个控制器的原理图如图\ref{fig:passive_sync_schematic}所示。
-控制器无需供电，它采用机械按钮的形式完成控制线和底线的短接，从而触发相机快门。
-控制器之间，以及相机与控制器间均采用AWG28规格的排线连接，
-在控制器端均使用了冷压的XH2.54插头；
-在相机段则使用了焊接的2.5mm插头。
-此外，每个相机接口在连接到总线前均使用了两颗二极管进行隔离，以防止相机间的干扰。
-这样可允许在控制器连接后依然可以手动控制单台相机的快门，也能防止在连接线缆时误触发快门。
-
-\paragraph{同步精度测试}
-
-\begin{figure}
-\centering
-\begin{subfigure}[b]{0.55\textwidth}
-    \includegraphics[width=\textwidth]{figures/passive_sync_test}
-    \caption{测试过程示意图}
-\end{subfigure}%
-\begin{subfigure}[b]{0.44\textwidth}
-    \includegraphics[width=\textwidth]{figures/LED_array}
-    \caption{单片机和LED阵列}
-\end{subfigure}%
-\caption{被动同步装置的同步精度测试装置}
-\label{fig:passive_sync_test}
-\end{figure}
-
-电场的传播速度非常快，因此，当控制器的按钮被按下时，理论上控制信号能同时送达所有相机。
-为了实际测试该装置的效果，本文进行了端到端的同步精度测试。
-如图\ref{fig:passive_sync_test}所示，该测试的拍摄目标包括5个由单片机控制的LED灯，以及一个60Hz刷新率的显示器（此处使用iPad）。
-其中单片机通过硬件计时器中断精确控制LED灯，每个LED灯的亮灭切换间隔依次为0.5ms、1ms、2ms、4ms、8ms，每16ms这些LED灯的状态完成一次循环。
-显示器则显示一个秒表，用于判断16ms以上的时间间隔。
-
-相机摆放时，需要使LED灯在不同相机传感器的同一位置成像，以避免滚动快门的影响。
-拍摄前，需要将快门速度调整为最快的1/4000秒，以尽量避免相机曝光过程与LED的亮灭切换过程重叠，影响读取LED灯的状态。
-测试时，将两台相机连接在控制器上，然后多次使用控制器触发快门。
-读取结果时，首先丢弃难以判断LED灯状态的图像，
-对剩余图像以二进制编码的形式记录LED灯的状态以及屏幕显示的秒表的时间。
-对比同一次快门中不同相机拍摄到的照片中读数即可准确获得两台相机曝光的时间差，即控制器的同步精度。
-
-实验结果显示，多台佳能R6相机间的同步精度小于0.5ms，即每次拍摄中不同相机的读数均相同。该精度已经足够满足实际应用的需求，且已经远高于快门滚动的速度。
-因受到相机最高快门速度的限制，未能以更高的精度完成测试。
-此外，本文也测试了R6和另一台佳能90D单反相机间同步的精度，结果显示两台相机间有4ms但非常稳定的延迟。
 
 \input{calib}
 
@@ -656,7 +581,187 @@ ISO设定在比相机自动测光低1至2 EV的值，在降低噪声的同时，
 
 \subsection{相机同步精度验证}
 
-\subsection{相机标定实例可视化与精度验证}
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.55\textwidth}
+    \includegraphics[width=\textwidth]{figures/passive_sync_test}
+    \caption{测试过程示意图}
+\end{subfigure}%
+\begin{subfigure}[b]{0.44\textwidth}
+    \includegraphics[width=\textwidth]{figures/LED_array}
+    \caption{单片机和LED阵列}
+\end{subfigure}%
+\caption{被动同步装置的同步精度测试装置}
+\label{fig:passive_sync_test}
+\end{figure}
+
+电场的传播速度非常快，因此，当控制器的按钮被按下时，理论上控制信号能同时送达所有相机。
+为了实际测试该装置的效果，本文进行了端到端的同步精度测试。
+如图\ref{fig:passive_sync_test}所示，该测试的拍摄目标包括5个由单片机控制的LED灯，以及一个60Hz刷新率的显示器（此处使用iPad）。
+其中单片机通过硬件计时器中断精确控制LED灯，每个LED灯的亮灭切换间隔依次为0.5ms、1ms、2ms、4ms、8ms，每16ms这些LED灯的状态完成一次循环。
+显示器则显示一个秒表，用于判断16ms以上的时间间隔。
+
+相机摆放时，需要使LED灯在不同相机传感器的同一位置成像，以避免滚动快门的影响。
+拍摄前，需要将快门速度调整为最快的1/4000秒，以尽量避免相机曝光过程与LED的亮灭切换过程重叠，影响读取LED灯的状态。
+测试时，将两台相机连接在控制器上，然后多次使用控制器触发快门。
+读取结果时，首先丢弃难以判断LED灯状态的图像，
+对剩余图像以二进制编码的形式记录LED灯的状态以及屏幕显示的秒表的时间。
+对比同一次快门中不同相机拍摄到的照片中读数即可准确获得两台相机曝光的时间差，即控制器的同步精度。
+
+实验结果显示，多台佳能R6相机间的同步精度小于0.5ms，即每次拍摄中不同相机的读数均相同。该精度已经足够满足实际应用的需求，且已经远高于快门滚动的速度。
+因受到相机最高快门速度的限制，未能以更高的精度完成测试。
+此外，本文也测试了R6和另一台佳能90D单反相机间同步的精度，结果显示两台相机间有4ms但非常稳定的延迟。
+
+\subsection{相机标定实例可视化与精度分析}
+
+由于本文采用的模型参数量小，且角点数量多（约15000个），基本没有过拟合的风险。
+因此本文并未单独划分验证集，而是直接使用所有的角点的重投影误差作为标定精度的评价标准。
+平均重投影误差定义为：
+\begin{equation}
+    \label{eq:reproj_err}
+    \frac{1}{\|O\|}\sum_{(i,j,k)\in O}\left\|\cornerpix_{i,j,k} - \pi\left(\camparam_i, T_j(\cornerboard_k)\right)\right\|_2
+    \text{，}
+\end{equation}
+其中，$O$为所有可用角点集合。注意该指标与公式\eqref{eq:calib_opt}中的目标函数有所不同，该指标是所有角点的重投影误差的算术平均，以便于进行下文中的各种统计。
+上述方法最终获得的平均重投影误差为0.38像素。
+以下将对可能影响标定精度的各个因素进行分析：
+
+\paragraph{自动对焦}
+由于现实中的相机不是理想的针孔相机，仅有处于焦平面上的物体能清晰成像。
+为获得清晰的照片，相机通常默认会开启自动对焦。即通过电机驱动镜片移动，以改变焦平面的距离。
+但不幸的是，镜片的移动同样也会导致相机的成像参数发生较大变化，从而无法达到较高的标定精度。
+在实践中，若开启了自动对焦，我们则无法获得优于5像素的重投影误差。
+因此，在标定和采集数据时设置手动对焦是非常必要的。
+
+\begin{figure}
+    \centering
+    \import{build/figures/}{stab_ablation.pgf}
+    \caption[不同相机的重投影误差]{同一次标定中不同相机第一阶段的重投影误差。其中，10号相机开启了光学防抖，其余相机关闭了光学防抖。}
+    \label{fig:stablize_ablation}
+\end{figure}
+
+\paragraph{光学防抖}
+为尽量避免相机机身震动引起的运动模糊，本文使用的镜头配备有光学防抖功能。该功能的原理也是通过电机驱动镜片运动以抵消相机机身的运动的影响。
+但是即使本文中的相机是固定在支架上的，光学防抖功能仍然会导致外参的轻微变化。
+如图\ref{fig:stablize_ablation}所示，图中仅10号相机开启了防抖，而其重投影误差超出了其他相机近一倍。
+因此，关闭光学防抖将有助于提高标定精度。但需注意，关闭防抖后，每次物理接触相机调节参数等之后，再次拍摄前均需要等待5-10秒，以允许整个支架系统恢复稳定。
+
+\begin{table}[htb]
+    \centering
+    \caption[相机畸变模型对标定精度的影响]{
+        OpenCV中实现的各种相机畸变模型对标定精度的影响。加粗数字为本文最终使用模型。
+        该结果中未排除误差较大的角点。
+    }
+    \begin{tabular}{l|rr}
+        \toprule
+        畸变模型(参数数量) & \shortstack{集束调整前\\重投影误差（像素）} & 重投影误差（像素） \\
+        \midrule
+        无畸变 (0) & 20.220 & 7.011 \\
+        默认 (5) & 0.917 & \textbf{0.455} \\
+        rational (8) & 0.762 & 0.462 \\
+        thin prism (12) & 1.314 & 0.445 \\
+        tilted (14) & 0.744 & 0.449 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:distortion}
+\end{table}
+
+\paragraph{相机畸变模型}
+相机镜头会带来少量畸变，从而使成像结果与理想的针孔相机成像结果有所差异。
+本方案使用了OpenCV中默认的具有5个参数的畸变模型，以建模这种差异。
+图\ref{tab:distortion}展示了使用不同畸变模型时重投影误差。
+可见本文所使用的相机具有不可忽视的镜头畸变，对畸变进行建模可大幅提高标定精度。
+另一方面，使用更为复杂的畸变模型则没有明显的优势。
+
+\begin{figure}
+    \centering
+    \import{build/figures/}{corner_fit.pgf}
+    \small
+    (a) 不同标定板角度下的精度对比\hfill
+    (b) 不同失焦模糊下的精度对比\hfill
+    (c) 不同噪音下的精度对比
+    \caption[OpenCV与本文使用的角点定位算法的精度对比]{
+        OpenCV与本文使用的角点定位算法的精度对比。
+        带有噪音的图像服从柏松分布，
+        增益表示在传感器取得最大读数时接收的电子数量，增益越高，噪声越小。
+        在Blender渲染的全部1000张图像中，
+        (a)展示了增益$2^{14}$时距离焦平面-0.3至0.2米的图像中，误差与标定版角度的关系；
+        (b)展示了增益$2^{14}$时倾斜角度70°以下的图像中，误差与失焦模糊程度的关系；
+        (c)展示了距离焦平面-0.3至0.2米且倾斜角度70°以下的图像中，误差与噪音强度的关系。
+    }
+    \label{fig:corner_fit}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{1.57in}
+        \import{build/figures/}{corner_gain-14_0023_opencv.pgf}%
+        \caption{OpenCV, 增益$2^{14}$}%
+    \end{subfigure}%
+    \begin{subfigure}{1.57in}
+        \import{build/figures/}{corner_gain-10_0023_opencv.pgf}%
+        \caption{OpenCV, 增益$2^{10}$}%
+    \end{subfigure}%
+    \begin{subfigure}{1.57in}
+        \import{build/figures/}{corner_gain-14_0023_saddle.pgf}%
+        \caption{本文, 增益$2^{14}$}%
+    \end{subfigure}%
+    \begin{subfigure}{1.57in}
+        \import{build/figures/}{corner_gain-10_0023_saddle.pgf}%
+        \caption{本文, 增益$2^{10}$}%
+    \end{subfigure}%
+    \caption[较严重失焦时的角点定位结果]{
+        较严重失焦时的角点定位结果。
+        左边两幅图展示了OpenCV的cornerSubPix算法在不同噪音强度时的结果，
+        右边两幅图展示了本文所实现的算法的结果。
+        图中的红色圆点表示100次随机初始化的收敛位置，
+        绿色点表示角点位置真值。
+        可见OpenCV无法正确收敛，在相同的半径参数下，本文所实现的算法可处理更大的失焦程度。
+    }
+    \label{fig:corner_blur}
+\end{figure}
+
+\paragraph{角点定位算法}
+角点定位的精度是决定标定精度的关键因素。
+为验证本文所实现的算法的性能，本文使用Blender的Cycles渲染器生成了1000张的标定板角点的图像，
+这些角点具有随机的位置、角度、失焦模糊和噪声，
+并在这组图像上将本文所实现的算法和OpenCV的cornerSubPix算法进行了对比。
+具体方法是使用同样的半径$r=15$，使用不同算法分别在每张图像的角点真值附近$10\times 10$像素的范围内随机初始化100次，并优化到收敛，然后统计每张图像的平均重投影误差。
+如图\ref{fig:corner_fit}所示，本文在整体精度上大幅优于OpenCV的算法，且在应对极端角度，失焦模糊，随机噪声这些采集中经常出现的情况也有较高的鲁棒性。
+而OpenCV的算法在较严重的失焦时则无法正确收敛（如图\ref{fig:corner_blur}）。
+
+\paragraph{角点定位失败造成的外点}
+由于角点被其他物体遮挡，或者受到其他物体投下的阴影影响，偶尔角点定位会收敛到错误的位置，造成外点。
+但这样的点很少，通常在几十个，因此在实践中未观察到对标定精度有显著的影响。
+但是，在统计损失函数或平均重投影误差时，排除这些点可使所得统计数据更能代表整体标定精度。
+
+\begin{table}
+    \centering
+    \caption[不同后处理方案对标定精度的影响]{
+        不同后处理方案对标定精度的影响。
+        离群点为重投影误差大于3像素的点，这些点在集束调整和数据统计时被排除。
+    }
+    \begin{tabular}{l|rrrr}
+        \toprule
+        图像源 & \shortstack{定位成功\\角点数} & 离群点 & \shortstack{平均重投影误差\\（像素）}& \shortstack{中位数重投影误差\\（像素）} \\
+        \midrule
+        原始图像（本文） & 14579 & 21 & 0.4250 & 0.3634 \\
+        相机JPG预览图   & 14589 & 18 & 0.4138 & 0.3518 \\
+        佳能DPP后处理   & 14592 & 16 & 0.4120 & 0.3515 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:camera_postprocess}
+\end{table}
+
+\paragraph{相机后处理}
+数码相机为呈现更加视觉友好的图像，会对采集的数据进行一系列后处理，如去马赛克，gamma映射、降噪、锐化、白平衡等。
+为验证这些功能对标定精度可能的影响，本文对比了使用处理前和处理后的数据标定的重投影误差，如表\ref{tab:camera_postprocess}所示。
+其中后处理使用的是佳能Digital Photo Professional软件，并在默认设置的基础上开启了数码镜头优化，未开启镜头畸变校正，并统一了所有照片的白平衡设置，最终导出为16位TIFF格式图像以保留尽可能高的精度。
+它处理一张图片需要约30秒，每次标定采集的数百张图片来说需要耗费的时间相当可观。
+此外，本文还对比了相机自动嵌入在原始数据文件中的一张JPG格式的预览图。
+结果显示，后处理能略微提升标定精度，并将重投影误差降低0.01像素。使用DPP软件后处理则与预览图相当。
+在后处理过程中，佳能可以利用相机和镜头制造的信息以优化结果。
+然而佳能的后处理算法并不公开，因此为了保持全流程的可控，且考虑到提升幅度不大，本方案依然选择了使用原始图像进行标定。
 
 \subsection{光源标定实例}
 
