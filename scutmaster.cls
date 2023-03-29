@@ -74,9 +74,9 @@
 \RequirePackage{amssymb}
 \RequirePackage{amsmath}
 
-\renewcommand{\theequation}{\arabic{chapter}-\arabic{equation}}
-\renewcommand{\thetable}{\arabic{chapter}-\arabic{table}}
-\renewcommand{\thefigure}{\arabic{chapter}-\arabic{figure}}
+\renewcommand{\theequation}{\thechapter-\arabic{equation}}
+\renewcommand{\thetable}{\thechapter-\arabic{table}}
+\renewcommand{\thefigure}{\thechapter-\arabic{figure}}
 
 \RequirePackage{caption}
 \captionsetup{labelsep=space}
