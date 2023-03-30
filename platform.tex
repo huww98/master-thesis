@@ -231,18 +231,19 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 
 在获得了用户输入的左、右、上三个参数后，本文将通过以下算法解算球在相机坐标系下的位置。
 首先，由于本文假设光线来自无限远处，因此最终坐标映射的结果将和球的尺度无关，不妨将球的半径设为1。
-用户指定的三个参数可各确定一个与球相切的平面，以球心到三个面的距离分别为1联立方程即可求解出球心的坐标。
+用户指定的三个参数可各确定一个与球相切的平面，以球心到三个面的距离分别为1的条件联立方程，即可求解出球心的坐标。
 
+\def\p{\mathrm}
 \begin{wrapfigure}{r}{4cm}
 \begin{tikzpicture}
-    \filldraw[black] (0,0) circle (2pt) node[anchor=west]{相机$\mathbf{O}$};
+    \filldraw[black] (0,0) circle (2pt) node[anchor=west]{相机$\p{O}$};
     \draw (0,0) -- (0,1.5) node[right=-1mm] {$f_x$} -- (0,2);
     \draw (0,0) -- (-2,2);
     \draw (0,0) -- (2,2);
     \draw [name path=H] (-2,2) -- node[below] {$c_x$} (0,2) -- (2,2);
 
     \coordinate (C) at (0.3, 3.3);
-    \filldraw (C) circle (2pt) node[anchor=west]{$\mathbf{C}$};
+    \filldraw (C) circle (2pt) node[anchor=west]{$\p{C}$};
     \node[draw, circle] (c) at (C) [minimum size=2.4cm] {};
     \coordinate (A) at (tangent cs:node=c,point={(0,0)},solution=1);
     \coordinate (B) at (tangent cs:node=c,point={(0,0)},solution=2);
@@ -259,38 +260,38 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
 \end{wrapfigure}
 右图为整个场景的俯视图，其中下方的三角形代表相机的视锥体，图中标注了相机经过标定后的焦距$f_x$和光心$c_x$。上方的圆代表反射球，两条切线分别表示由用户输入确定的左，右两个平面。
 下面以左平面为例，根据用户输入的像素坐标$l$求解左平面的法向量$\mathbf{n}_l$。
-取点$A = (l-c_x, 1, f_x)$、$B = (l-c_x, 0, f_x)$。
+在相机坐标系中，取点$\p{A} = (l-c_x, 1, f_x)$、$\p{B} = (l-c_x, 0, f_x)$。
 可以验证该两点均投影在像素横坐标为$l$的位置（图中左侧实心点处），
-于是可以通过点$O$、$A$、$B$确定该平面，其法向量为
+于是可以通过点$\p{O}$、$\p{A}$、$\p{B}$确定该平面，其法向量为
 \begin{equation}
-\mathbf{n}_l = \overrightarrow{\mathbf{O}\mathbf{A}} \times \overrightarrow{\mathbf{O}\mathbf{B}}
+\mathbf{n}_l = \overrightarrow{\p{O}\p{A}} \times \overrightarrow{\p{O}\p{B}}
 = \left[f_x, 0, c_x - l\right]
 \text{。}
 \end{equation}
 同理可以求得右平面和上平面的法向量$\mathbf{n}_r$、$\mathbf{n}_u$。
-记球心坐标为$\mathbf{C}$。
+记球心坐标为$\p{C}$。
 球心到左平面的距离为1可表示为：
 \begin{equation}
-    \frac {\overrightarrow{\mathbf{O}\mathbf{C}} \cdot \mathbf{n}_l}{\|\mathbf{n}_l\|} = 1
+    \frac {\overrightarrow{\p{O}\p{C}} \cdot \mathbf{n}_l}{\|\mathbf{n}_l\|} = 1
     \text{。}
 \end{equation}
 对于另外两个平面同理可列方程。
-解该线性方程组即可得到球心的坐标$\mathbf{C}$。
+解该线性方程组即可得到球心$\p{C}$的坐标。
 
 在解算出反射球的具体位置后，需要将其重新投影到照片上并绘制出轮廓，以便用户得到实时的反馈。
 为此，本方案进一步求该轮廓的参数方程以便绘制。
 令曲线参数方程的参数为$\theta\in[0, 2\pi]$。
-设球面上一点$\mathbf{D} = \mathbf{C} + [\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi]$，其中$\phi$为未知数。
-令$\overrightarrow{\mathbf{O}\mathbf{D}}$与球面相切，可由$\overrightarrow{\mathbf{O}\mathbf{D}} \perp \overrightarrow{\mathbf{C}\mathbf{D}}$列方程求解$\phi$：
+设球面上一点$\p{D}$，$\overrightarrow{\p{O}\p{D}} = \overrightarrow{\p{O}\p{C}} + [\cos\theta \cos\phi, \sin\theta \cos\phi, \sin\phi]$，其中$\phi$为未知数。
+令$\overrightarrow{\p{O}\p{D}}$与球面相切，可由$\overrightarrow{\p{O}\p{D}} \perp \overrightarrow{\p{C}\p{D}}$列方程求解$\phi$：
 \begin{equation}
 \begin{aligned}
-&\overrightarrow{\mathbf{O}\mathbf{C}} \cdot \overrightarrow{\mathbf{C}\mathbf{D}} = -1 \\
-\Rightarrow &a \cos\phi + \mathbf{C}_z \sin\phi = -1\\
-\Rightarrow &\phi = \arcsin\frac{-1}{\sqrt{a^2 + \mathbf{C}_z^2}} - \arctan\frac{a}{\mathbf{C}_z^2}, \quad a = \mathbf{C}_x * \cos(\theta) + \mathbf{C}_y * \sin(\theta)
+&\overrightarrow{\p{O}\p{C}} \cdot \overrightarrow{\p{C}\p{D}} = -1 \\
+\Rightarrow &a \cos\phi + \p{C}_z \sin\phi = -1, \quad a = \p{C}_x * \cos(\theta) + \p{C}_y * \sin(\theta)\\
+\Rightarrow &\phi = \arcsin\frac{-1}{\sqrt{a^2 + \p{C}_z^2}} - \arctan\frac{a}{\p{C}_z^2}
 \text{，}
 \end{aligned}
 \end{equation}
-其中最后一步推导使用了辅助角公式。然后点$D$在像素坐标系中的投影即为所求的反射球的轮廓曲线上的一点，其关于$\theta$的参数方程可用于便捷地绘制出该轮廓。
+其中最后一步推导使用了辅助角公式。然后点$\p{D}$在像素坐标系中的投影即为所求的反射球的轮廓曲线上的一点，其关于$\theta$的参数方程可用于便捷地绘制出该轮廓。
 
 最后，利用反射球的位置，我们需要解算光照方向与像素坐标的映射关系。
 对于像素坐标上的一点$e$，可将其映射为相机坐标系中的一条源自原点射线，其方向为：
@@ -300,9 +301,9 @@ ISO较高的照片由于噪声方差较大（如图\ref{fig:HDRI_stat}b），也
     \label{eq:ray1}
 \end{equation}
 该方向是视线方向，也即光线从反射球反射的相反方向。
-该射线与反射球表面交于一点$\mathbf{E}=\lambda\mathbf{v}$，且满足：
+该射线与反射球表面交于一点$\p{E}=\lambda\mathbf{v}$，且满足：
 \begin{equation}
-    \| \mathbf{E} - \mathbf{C} \| = 1
+    \left\| \overrightarrow{\p{O}\p{E}} - \overrightarrow{\p{O}\p{C}} \right\| = 1
     \text{。}
     \label{eq:ray2}
 \end{equation}
@@ -740,7 +741,6 @@ ISO设定在比相机自动测光低1至2 EV的值，在降低噪声的同时，
         右边两幅图展示了本文所实现的算法的结果。
         图中的红色圆点表示100次随机初始化的收敛位置，
         绿色点表示角点位置真值。
-        可见OpenCV无法正确收敛，在相同的半径参数下，本文所实现的算法可处理更大的失焦程度。
     }
     \label{fig:corner_blur}
 \end{figure}
@@ -752,7 +752,8 @@ ISO设定在比相机自动测光低1至2 EV的值，在降低噪声的同时，
 并在这组图像上将本文所实现的算法和OpenCV的cornerSubPix算法进行了对比。
 具体方法是使用同样的半径$r=15$，使用不同算法分别在每张图像的角点真值附近$10\times 10$像素的范围内随机初始化100次，并优化到收敛，然后统计每张图像的平均重投影误差。
 如图\ref{fig:corner_fit}所示，本文在整体精度上大幅优于OpenCV的算法，且在应对极端角度，失焦模糊，随机噪声这些采集中经常出现的情况也有较高的鲁棒性。
-而OpenCV的算法在较严重的失焦时则无法正确收敛（如图\ref{fig:corner_blur}）。
+而OpenCV的算法在较严重的失焦时则无法正确收敛（如图\ref{fig:corner_blur}），
+在相同的半径参数下，本文所实现的算法可处理更大的失焦程度。
 
 \paragraph{角点定位失败造成的外点}
 由于角点被其他物体遮挡，或者受到其他物体投下的阴影影响，偶尔角点定位会收敛到错误的位置，造成外点。
