@@ -52,7 +52,6 @@
 \caption{人脸重建总体流程}
 \label{fig:recon_overall}
 \end{figure}
-
 为完成该人脸重建的目标，本方法将输出一个基于预定义的拓扑结构的三角形网格，以及其对应的高清纹理贴图，该图的像素中编码了人脸表面的光线反射率。
 其总体流程如\ref{fig:recon_overall}所示。
 本文首先利用现有方法\citep{deep3d}根据输入的照片估计3DMM人脸模型的形变系数，环境光照，人脸姿态等信息。
@@ -132,7 +131,7 @@
 若要该中心点的投影位置不变，则该点应位于新坐标系下的一条以原点为起点的射线上，该射线上另一点的坐标为$\bar{\mathbf{v}}' = \mathbf{P}_\mathrm{crop}^{-1}\mathbf{P}_\mathrm{d}\bar{\mathbf{v}}$。
 因此，所需旋转的旋转轴为$\bar{\mathbf{v}}' \times \bar{\mathbf{v}}$，
 旋转角为$\arccos\left(\frac{\bar{\mathbf{v}}'\cdot\bar{\mathbf{v}}}{\|\bar{\mathbf{v}}'\|\|\bar{\mathbf{v}}\|}\right)$。
-可由罗德里格斯公式计算其对应旋转矩阵$\mathbf{R}$，类似公式\ref{eq:rodrigues}，此处不再赘述。
+可由罗德里格斯公式计算其对应旋转矩阵$\mathbf{R}$。
 旋转后的中心点坐标记为$\bar{\mathbf{v}}'' = \mathbf{R}\bar{\mathbf{v}}$。
 
 然后可以求解所需平移，该步骤主要用于平衡不同相机的焦距参数的差异。
@@ -208,7 +207,17 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 
 \begin{figure}
 \centering
-\includegraphics[height=2.2in]{figures/debug_sdf}
+\begin{tikzpicture}[
+    every node/.style={inner sep=0, anchor=south west},
+]
+    \node (a) at (0,0) {\includegraphics[height=5cm]{figures/debug_sdf}};
+    \draw [red,x=5cm/256, y=5cm/256] (70,8) rectangle (192,72);
+    \node (b) [
+        draw=red,thick,right=of a,inner sep=0.5\pgflinewidth
+    ] {
+        \includegraphics[height=5cm,bb={70 8 192 72},clip]{figures/debug_sdf}
+    };
+\end{tikzpicture}
 \caption[人为制造边缘分类效果]{人为制造边缘分类效果。绿色为人为制造的边缘；红色为与未知背景间的边缘；蓝色为模型内部相互遮挡产生的边缘。}
 \label{fig:sdf_result}
 \end{figure}
@@ -233,7 +242,7 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 梯度$\frac{\partial d}{\partial \mathbf{x}}$的计算与所使用的渲染方式有关。
 例如OpenGL支持通过数值方法直接求任意变量关于像素坐标的梯度\footnote{https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml}。
 而针对本文使用的nvdiffrast来说，本文首先以解析法随SDF一同计算其关于纹理坐标的梯度$\frac{\partial d}{\partial u}$和$\frac{\partial d}{\partial v}$，并将其与$d$一同保存于贴图中。
-然后根据nvdiffrast的插值模块给出的纹理坐标和像素坐标间的雅可比矩阵将其到像素坐标：
+然后根据nvdiffrast的插值模块给出的纹理坐标和像素坐标间的雅可比矩阵将其转换到像素坐标：
 \begin{equation}
     \begin{bmatrix}
         \frac{\partial d}{\partial x} \\
@@ -307,7 +316,7 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 需注意，此处的投影矩阵$\mathbf{P}_\mathrm{crop}$需要选取合适的近截平面和远截平面，扩展为$4\times 4$的投影矩阵，以将深度也投影在$[-1,1]$范围内，支持下一步光栅化的深度缓冲和深度测试算法。
 
 除了顶点位置和反射率，本文还计算了每个顶点的法线。
-通行的做法是根据顶点周围的三角形的形状，对三角形的发现做加权平均。
+通行的做法是根据顶点周围的三角形的形状，对三角形的法线做加权平均。
 但由于BFM模型的网格较为密集且均匀，简单起见，本文直接使用了与每个顶点相邻的多个三角形的法线平均值作为该顶点的法线。即第$i$个顶点的法向为：
 \begin{equation}
 \mathbf{n}_i \propto \sum_{j\in\mathcal{N}_i}\mathbf{n}_{tri,j} \quad
@@ -363,11 +372,11 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
         \text{，}
 \end{gather}
 其中$L$是二阶球谐函数的系数，$\mathbf{n}$插值后归一化的法向量，光强对每个通道$i$分别计算。
-具体推导过程较为复杂，感兴趣的读者可参考引用的原论文。
+具体推导过程较为复杂，可见引用的原论文。
 这些参数将使用第\ref{sec:recon_init}节中介绍的神经网络的预测结果初始化，但由于色彩空间和其他定义方式有区别，此处需要进行一些转换。
 
-然而，仅使用球谐函数表示的环境光照是很粗糙的，例如，它作为局部着色方法，无法建模人脸本身的自遮挡现象。
-此外，算法估计的人脸几何形状由于3DMM的表达能力有限，也能出现系统性的偏差。
+然而，仅使用球谐函数表示的环境光照是很粗糙的，例如，它作为局部着色方法，无法建模人脸本身的自遮挡产生的阴影现象。
+此外，算法估计的人脸几何形状由于3DMM的表达能力有限，也会出现系统性的偏差。
 拍摄者使用的相机的gamma校正，相机内建的自动亮度优化等也会对逆渲染产生影响。
 这些偏差若不做处理，则最终均会反映到下一节中重建的反射率纹理上，从而影响模型在新环境向的渲染效果。
 因此，本文也采用了\citet{IchimBP15}提出的方法，引入一个光照修正场，用于吸收上述所有未能建模的偏差中的低频部分。
@@ -441,7 +450,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 本节将介绍如何将照片中的信息迁移到人脸模型的纹理中，并计算高分辨率的反射率纹理贴图。
 该步骤总体上类似于一次反方向的光栅化渲染过程。
 即以照片作为纹理，顶点在裁切空间的坐标作为纹理坐标，而原来的顶点纹理坐标则作为新的裁切空间坐标，进行一次光栅化和插值。
-在片元着色阶段，则从照片中以纹理采样的方式获得最终反射进相机的能量分布，在依据预测的环境光照解算出反射率，即$\mathbf{\rho}_\mathrm{img} = \mathbf{C} / \mathbf{E}$。
+在片元着色阶段，则从照片中以纹理采样的方式获得最终反射进相机的能量分布，再依据预测的环境光照解算出反射率，即$\mathbf{\rho}_\mathrm{img} = \mathbf{C} / \mathbf{E}$。
 具体实现方式与正向过程类似，但有几点需注意：
 \begin{itemize}
 \item 在OpenGL的约定中，裁切空间的坐标范围为$[-1,1]$，而纹理坐标为$[0,1]$，因此它们在交换时需要分别进行一次线性变换以映射到正确的范围；
@@ -452,14 +461,9 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 此外，人脸在特定视角下只能观测到其未被遮挡的部分，因此以上述方法渲染出的纹理图像中，只有映射到照片中可见表面的部分才是有效的。
 为识别出这些有效的纹理区域，本文使用了如下两个策略：
 \begin{enumerate}
-\item 将上述计算的每个顶点的3D坐标$\mathbf{v}$和法向$\mathbf{n}$也插值到渲染出的纹理空间中，则法向与相机方向的夹角超过90°的像素所在表面是背向相机的，可认为是无效区域。
+\item 将上述每个顶点的3D坐标$\mathbf{v}$和法向$\mathbf{n}$也插值到渲染出的纹理空间中，则法向与相机方向的夹角超过90°的像素所在表面是背向相机的，可认为是无效区域。
 \item 先以正常照片的视角渲染一张深度图，其中记录照片中的每个像素到相机的距离。然后将该深度图与照片一起，作为纹理采样至新纹理空间。若采样获得的深度值和使用顶点3D坐标计算的深度值相差超过一个阈值，则认为该像素所在位置被其他物体表面遮挡，是无效区域。
 \end{enumerate}
-这两个策略各有优劣：
-前者可准确识别有效和无效区域交界的位置；且法向与相机方向夹角越大其纹理分辨率越低，这也可以为后续补全的步骤提供依据，允许解算的纹理和补全的纹理间平滑过渡。
-但该策略则无法区分朝向相机但被遮挡的部分。
-后者则可以识别出被遮挡的区域，但由于数值计算的精度有限，需要设定阈值，因此无法准确判别交界的位置。
-本文选取两种策略识别的有效区域的交集作为最终的有效区域。
 \begin{figure}
 \centering
 \begin{subfigure}{4.35cm}
@@ -503,6 +507,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
     \end{scope}
 \end{tikzpicture}
 \caption{有效区域判断策略}
+\label{fig:unwrap_strategy}
 \end{subfigure}
 \caption[纹理迁移结果]{
     将照片(a)中的像素值迁移到纹理空间(b)中的结果。
@@ -515,19 +520,24 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 \label{fig:unwrap_result}
 \end{figure}
 如图\ref{fig:unwrap_result}展示了迁移的结果以及这两种策略的识别效果。
+这两个策略各有优劣：
+前者可准确识别有效和无效区域交界的位置；且法向与相机方向夹角越大其纹理分辨率越低，这也可以为后续补全的步骤提供依据，允许解算的纹理和补全的纹理间平滑过渡。
+但该策略则无法区分朝向相机但被遮挡的部分。
+后者则可以识别出被遮挡的区域，但由于数值计算的精度有限，需要设定阈值，因此无法准确判别交界的位置，图\ref{fig:unwrap_strategy}中可见交界处存在明显的锯齿，这是数值计算精度不足的体现。
+本文选取两种策略识别的有效区域的交集作为最终的有效区域。
 
 \paragraph{纹理补全}
 由于本应用中以不同视角渲染的需求较低本文仅使用了简单的策略对纹理中无效区域进行补全。
 本文将3DMM预测的低频纹理与从照片中解算的纹理加权平均，其权重与法向与相机方向夹角的余弦相关：
 \begin{equation}
 \mathbf{\rho}_\mathrm{fused} = \begin{cases}
-    \alpha \mathbf{\rho}_\mathrm{img} + (1-\alpha) \mathbf{\rho}, \alpha = \frac{\mathbf{v}\cdot\mathbf{n}}{\|\mathbf{v}\|} & \text{if像素位于有效区域} \\
+    \alpha \mathbf{\rho}_\mathrm{img} + (1-\alpha) \mathbf{\rho}, \alpha = \dfrac{\mathbf{v}\cdot\mathbf{n}}{\|\mathbf{v}\|} & \text{if像素位于有效区域} \\
 \mathbf{\rho} & \text{otherwise}
 \end{cases}
 \label{eq:texture_fusion}
 \end{equation}
 
-最终，通过逆渲染的优化过程，即可获得所需的3D模型顶点坐标$\mathbf{S}$和其纹理$\mathbf{\rho}_\mathrm{fused}$。
+最终，通过逆渲染的优化过程和照片到纹理空间信息迁移，即可获得所需的3D模型顶点坐标$\mathbf{S}$和其纹理$\mathbf{\rho}_\mathrm{fused}$。
 该过程中得到的人脸姿态和环境光照信息也可以用于下游的渲染等任务中。
 
 \section{实验结果}
@@ -535,7 +545,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 本节将介绍本实现的细节，以及其最终呈现的3D模型重新渲染的结果。
 
 \paragraph{实现细节}
-该实验过程使用PyTorch\citep{pytorch}和nvdiffrast实现。
+该实验的逆渲染过程使用PyTorch\citep{pytorch}和nvdiffrast实现。
 长度单位为毫米。
 本文使用Adam\citep{adam}优化器，光照参数、3DMM模型参数、平移量、旋转量、顶点偏移量的学习率分别为$10^{-3}$、$10^{-2}$、$10^{-2}$、$10^{-4}$、$10^{-3}$，其余参数为默认值。
 可见性梯度扩展项的系数为$\alpha=10^{-7}$。
@@ -544,6 +554,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-4}$、$10^{-3}$、$10^{-3}$。
 逆渲染的分辨率为$1024\times1024$，运行了1000次优化迭代。
 在优化时，前100次迭代仅优化3DMM的反射率系数和SH光照参数，后续迭代则同时优化所有参数。
 本实现在NVIDIA RTX3060显卡上，单张照片的逆渲染优化约需要16秒。
+照片到纹理空间信息迁移使用OpenGL实现，仅需数毫秒。
 
 \subsection{重新渲染效果}
 
@@ -633,7 +644,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-4}$、$10^{-3}$、$10^{-3}$。
 
 \subsection{边缘对齐效果比较}
 
-\begin{figure}
+\begin{figure}[tbh]
 \centering
 \begin{tikzpicture}[
     node distance=2pt and 0pt,
@@ -680,7 +691,7 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-4}$、$10^{-3}$、$10^{-3}$。
 
 \subsection{几何形状准确度定量比较}
 
-\begin{table}
+\begin{table}[tbh]
     \caption[FaceWarehouse数据集上的平均重建误差]{
         在FaceWarehouse数据集中来自9个采集对象的共180个3D模型上的平均重建误差（毫米）。
         与之前的工作相同，本文展示了在大小两种不同的人脸裁剪区域下的结果。

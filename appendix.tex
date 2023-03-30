@@ -2,6 +2,9 @@
 
 \chapter{相机投影细节}
 
+本文在相机标定和后续所有运算中均使用了OpenCV中默认的针孔相机和畸变模型。
+为了完整性，这里形式化地描述了该相机投影模型$\pi(\delta_i, \cdot)$。
+
 在该模型下，对于任意在世界坐标系下的点$\mathbf{X}\in \mathbb{R}^3$，其在第$i$个相机的成像平面的投影点$\mathbf{x}^{(i)}$可以通过如下方式计算（简洁起见，此后省略上标$(i)$）：
 首先，应用罗德里格斯公式\cite{rodrigues}，将$\mathbf{X}$从世界坐标系转换到第$i$个相机的坐标系，即
 \begin{align}
@@ -32,19 +35,27 @@
 \begin{equation}
     \mathbf{x} = \begin{bmatrix}f_x & 0 \\ 0 & f_y \end{bmatrix} \mathbf{x}' + \begin{bmatrix}c_x \\ c_y \end{bmatrix}\text{。}
 \end{equation}
-以上过程可称为相机投影，记为$\pi(\delta_i, \cdot)$。
 
 \chapter{被动同步控制器实现细节}
 
-\begin{figure}[h]
+\begin{figure}[bth]
     \includegraphics[width=\textwidth]{figures/passive_sync_schematic}
     \caption{被动控制器的电路原理图}
     \label{fig:passive_sync_schematic}
 \end{figure}
+\begin{figure}
+    \centering
+    \includegraphics{figures/2.5mm}
+    \caption{用于焊接的2.5mm插头}
+\end{figure}
+每个被动控制器的电路原理图如图\ref{fig:passive_sync_schematic}所示。
 
 \chapter{主动同步控制器实现细节}
 
-在菜单的导航中，从左到右四个按钮的功能设置分别为：上一项，确认，下一项，返回；
+\paragraph{硬件}
+
+\paragraph{软件}
+在菜单的导航中，从左到右四个按钮的功能分别定义为：上一项，确认，下一项，返回；
 在数值设置界面，这些按钮则分别为：减小，切换开启/关闭，增大，确认。
 
 值得一提的是，在延迟设置的界面，用户可设置的最小分辨率为0.1毫秒，且最大范围为5秒，共50000个不同的设置值。
