@@ -197,11 +197,12 @@ $s$表示平移前后该点据相机的距离比例。
 
 下面以nvdiffrast的工作方式为例说明该贴图的使用方式：
 nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如图\ref{fig:aa}），其中一个像素在模型内部，另一个像素在模型外部。
-对于处于模型内部的像素，可从SDF贴图中采样其对应的$d$值，并计算$\frac{\partial d}{\partial \mathbf{x}}$，其中$\mathbf{x}$为对应外部像素相对该内部像素的坐标偏移量。
+\def\dgrad{\dot d}
+对于处于模型内部的像素，可从SDF贴图中采样其对应的$d$值，并计算其在对应外部像素方向上的梯度$\dgrad$，
 也即对3D模型的表面在该内部像素点的位置使用一个平面进行一阶近似，并求外部像素在该近似平面上的位置，以估计外部像素是否在人为制造边缘之外。
 正式地，对于一对分别处于模型内外的像素点，其处于人为制造的边缘当且仅当：
 \begin{equation}
-    d + \max\left(a\frac{\partial d}{\partial \mathbf{x}}, \delta\right) < 0
+    d + \max\left(a\cdot \dgrad, \delta\right) < 0
     \text{，}
 \end{equation}
 此时应该忽略其产生的可见性梯度。其中$\delta=0.1$为人为限制的梯度的最大值，为避免小概率时过大梯度产生过于离谱的结果；$a=1.5$为梯度放大的系数，为避免偶发的由于精度不足导致的检测遗漏。
@@ -241,7 +242,7 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 本方法相比\citet{sdf_glyphs}介绍的暴力方法效率更高，本方法计算$256\times256$分辨率的贴图，使用CPU单线程用时在10毫秒左右。
 
 \paragraph{梯度计算}
-梯度$\frac{\partial d}{\partial \mathbf{x}}$的计算与所使用的渲染方式有关。
+梯度$\dgrad$的计算与所使用的渲染方式有关。
 例如OpenGL支持通过数值方法直接求任意变量关于像素坐标的梯度\footnote{https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml}。
 而针对本文使用的nvdiffrast来说，本文首先以解析法随SDF一同计算其关于纹理坐标的梯度$\frac{\partial d}{\partial u}$和$\frac{\partial d}{\partial v}$，并将其与$d$一同保存于贴图中。
 然后根据nvdiffrast的插值模块给出的纹理坐标和像素坐标间的雅可比矩阵将其转换到像素坐标：
@@ -259,7 +260,7 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 \text{。}
 \end{equation}
 该方法与\citet{sdf_glyphs}中提出的方法相同。
-所要求的$\frac{\partial d}{\partial \mathbf{x}}$根据前景和背景像素的相对位置，是$\frac{\partial d}{\partial x}$或$\frac{\partial d}{\partial y}$或其相反数四者之一。
+所要求的$\dgrad$根据前景和背景像素的相对位置，是$\frac{\partial d}{\partial x}$或$\frac{\partial d}{\partial y}$或其相反数四者之一。
 
 另一种解决该问题的可能的方案是屏蔽位于模型表面特定区域的像素上的可见性梯度，例如屏蔽特定三角形，屏蔽到边缘距离小于某个阈值的区域，手动指定遮罩等。
 相比于这些方法，本方法具有如下优势：
