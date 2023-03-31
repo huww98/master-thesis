@@ -187,7 +187,7 @@ OLED显示控制模块负责调用单片机的硬件I2C接口与OLED显示器通
 为避免反复手动调整相机时钟设置，本工具支持在显示时自动添加偏移。
 相机间时间戳的偏移量存储于单独的文件中，用户可以复用之前拍摄时的数据，以避免从头开始校准，降低校准的难度。
 在提取CR3格式的照片元数据时，本工具根据网上公开的CR3格式反向工程文档\footnote{https://github.com/lclevy/canon\_cr3}，自行实现了格式解析器。
-该解析器经测试比开源的ExifTool\footnote{https://exiftool.org/}快了数倍，且不依赖于外部程序，使用更加简单。
+该解析器经测试在磁盘IO完全命中操作系统缓存的前提下，比开源的ExifTool\footnote{https://exiftool.org/}快约260倍，且不依赖于外部程序，使用更加简单。
 后端总共为前端提供如下5个HTTP RESTful API：
 \begin{enumerate}
 \item GET /photos：获取照片列表，及其元数据；
