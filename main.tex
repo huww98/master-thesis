@@ -41,6 +41,19 @@
 
 \school{软件学院}
 
+\usepackage{xunicode-addon}
+\xeCJKDeclareCharClass{Default}{%
+  "24EA,        % ⓪
+  "2460->"2473, % ①–⑳
+  "3251->"32BF, % ㉑–㊿
+}
+% 将中文字体声明为（西文）字体族
+\newfontfamily\EnclosedNumbers{Noto Sans CJK SC}
+
+% 放置钩子，只让带圈字符才需更换字体
+\AtBeginUTFCommand[\textcircled]{\begingroup\EnclosedNumbers}
+\AtEndUTFCommand[\textcircled]{\endgroup}
+
 \begin{document}
 
 \maketitle
