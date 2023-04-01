@@ -1,6 +1,7 @@
 \appendix
 
 \chapter{相机投影细节}
+\label{app:camera_model}
 
 本文在相机标定和后续所有运算中均使用了OpenCV中默认的针孔相机和畸变模型。
 为了完整性，这里形式化地描述了该相机投影模型$\pi(\delta_i, \cdot)$。
@@ -37,6 +38,7 @@
 \end{equation}
 
 \chapter{被动同步控制器实现细节}
+\label{app:passive_sync}
 
 \begin{figure}
     \begin{minipage}{0.52\textwidth}
@@ -71,6 +73,7 @@
 
 
 \chapter{主动同步控制器实现细节}
+\label{app:active_sync}
 
 \begin{figure}[p]
     \centering
@@ -167,6 +170,7 @@ OLED显示控制模块负责调用单片机的硬件I2C接口与OLED显示器通
 在未来也可借助滚动编码器等额外硬件以提供更好的用户体验。
 
 \chapter{照片整理工具实现细节}
+\label{app:pick_photo_impl}
 
 第\ref{sec:photo_process}节中提到，本方案中包括了一款照片整理工具，
 并已经介绍了其主要功能。
