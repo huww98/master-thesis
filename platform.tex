@@ -444,7 +444,7 @@ ISO设定在比相机自动测光低1至2 EV的值，在降低噪声的同时，
 \begin{figure}
 \begin{tikzpicture}[]
     \node (ui) [inner sep=0, outer sep=0, anchor=south west] {
-        \includegraphics[width=\textwidth,trim={2 0 0 5},clip]{figures/pick_photo}
+        \includegraphics[width=\textwidth,trim={2 0 0 49},clip]{figures/pick_photo}
     };
     \color{blue};
     \node at ( 9.5,4  ) {\textcircled{1}};
@@ -462,7 +462,8 @@ ISO设定在比相机自动测光低1至2 EV的值，在降低噪声的同时，
     \node at (12.9,8.1) {\textcircled{13}};
     \node at (14.4,8.1) {\textcircled{14}};
 \end{tikzpicture}
-\caption[照片整理工具UI截图]{照片整理工具UI截图。图中带圈数字是为解释说明而附加的，并非UI中的元素。\\
+\caption[照片整理工具UI截图]{照片整理工具UI截图。图中带圈数字是为解释说明而附加的，并非UI中的元素。
+界面中横轴为时间轴，每一行为同一台相机拍摄的照片。\\
 \textcircled{1}照片预览图和文件名，黄色背景表示选中的照片\\
 \textcircled{2}照片组名，黄色背景表示选中的组\\
 \textcircled{3}鼠标悬浮提示框，显示照片曝光信息等元数据\\
@@ -474,7 +475,9 @@ ISO设定在比相机自动测光低1至2 EV的值，在降低噪声的同时，
 \textcircled{9}运行算法自动匹配选中组中属于同一次捕获的照片\\
 \textcircled{10}切换下方横轴显示模式\\
 \textcircled{11}删除选中照片\\
-\textcircled{12}删除选中照片\\
+\textcircled{12}删除与选中照片同一次捕获的所有照片\\
+\textcircled{13}在新窗口查看选中照片的全分辨率JPG预览\\
+\textcircled{14}保存当前分组和时间戳同步信息
 }
 \label{fig:pick_photo}
 \end{figure}
