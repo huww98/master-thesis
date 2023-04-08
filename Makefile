@@ -14,9 +14,9 @@ build/%.pdf: | build
 		-xelatex \
 		$<
 
-build/main.pdf: main.tex | draw_figures
+build/main.pdf: main.tex build/git_description.tex | draw_figures
 
-build/blind.pdf: blind.tex main.tex | draw_figures
+build/blind.pdf: blind.tex main.tex build/git_description.tex | draw_figures
 
 build/sys_design.pdf: sys_design.tex
 
@@ -26,6 +26,9 @@ draw_figures: build/figures/*.pgf
 
 build/figures/%.pgf: draw.py
 	python3 $<
+
+build/git_description.tex: | build
+	echo "\def\gitdescription{$$(git describe --always --dirty --tags)}" > $@
 
 clean:
 	rm -rf build
