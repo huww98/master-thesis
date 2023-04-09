@@ -6,6 +6,8 @@ jobs:
     container: ghcr.io/huww98/master-thesis-env:master
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: count words
         run: texcount -merge main.tex
