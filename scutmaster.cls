@@ -84,8 +84,8 @@
 \RequirePackage{fancyhdr}
 \pagestyle{fancy}
 \fancypagestyle{main}{
-    \fancyhead[EC]{\zihao{5}\leftmark}
-    \fancyhead[OC]{\zihao{5}华南理工大学硕士学位论文}
+    \fancyhead[OC]{\zihao{5}\leftmark}
+    \fancyhead[EC]{\zihao{5}华南理工大学硕士学位论文}
     \fancyhead[L,R]{}
     \renewcommand\headrulewidth{1.5pt}
     \fancyfoot[C]{\zihao{5}\thepage}

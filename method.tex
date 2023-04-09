@@ -16,9 +16,9 @@
 具体来说，本章提出了一种面积归一化的像素损失函数，通过收缩和扩展两项梯度详尽地说明了其性质，并介绍了一种高效实现的方式。
 本章也通过实验证明了该损失函数确实能够使模型与照片中边缘精确对齐，同时无需背景模型，也不依赖关键点等额外监督信息。
 
-\section{背景}
+\section{研究动机}
 
-\subsection{基于可微分渲染的逆渲染流程}
+\subsection{现有可微分逆渲染无法处理未知背景}
 
 \begin{figure}
 \centering
@@ -31,7 +31,7 @@
 ]
     \linespread{1.2}\small
     \node (render) {可微分渲染};
-    \node (render_p) [below=of render,data] {固定参数};
+    \node (render_p) [below=of render,data] {渲染参数};
     \node [align=center] (model) [left=of render] {渲染参数\\预测模型};
     \node (model_p) [below=of model,param] {模型参数};
     \node (image) [right=of render,intermediate] {渲染图像};
@@ -147,6 +147,10 @@
 
 然而，在实际非受限环境照片的人脸重建的任务中，背景可能是很复杂且难以建模的。
 本章将探讨在这种情况下，如何利用可见性梯度以指导前景模型与目标照片中的边缘对齐。
+
+\subsection{现有人脸重建方法未利用可见性梯度}
+
+\subsection{现有考虑未知背景的方法适用范围有限}
 
 \section{面积归一化的像素损失函数}
 
