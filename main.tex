@@ -72,7 +72,7 @@
 本文进一步提出了一种基于SDF贴图的方法消除这些异常梯度，
 最终使人脸3D模型能更精确地对齐到照片中的边缘，从而提高了重建的准确性和实用性。
 
-本文实现了一个基于逆渲染的完整自动化人脸重建流程。
+基于本文提出的这些方法，本文实现了一个基于逆渲染的完整自动化人脸重建流程。
 该流程利用现有神经网络方法进行初始化，并结合传统方法重建人脸纹理。
 其重建的人脸可在一定的视角、光照、表情变化下较为逼真的重新渲染。
 本文展示和评估了其重建效果。
@@ -84,26 +84,12 @@
 Efficient 3D face reconstruction aims to recover 3D models of faces from a small number of unconstrained photos,
 which have been widely applied to face recognition, face expression capturing, face tracking, face animation synthesis, etc.
 However, these models are still difficult to apply to scenes that require direct image rendering, such as games and movies.
-Specifically, the existing reconstruction methods still have the following two problems:
-\begin{enumerate*}
-\item Due to the lack of high-quality 3D training data, the existing models cannot accurately capture the details of the face,
-such as wrinkles and pores,
-so they cannot directly output realistic image details when re-rendering, which cannot meet the requirements of industrial applications.
-\item The existing methods do not fully utilize the edge information in the photos,
+Specifically, the existing reconstruction methods still have the following problem:
+The existing methods do not fully utilize the edge information in the photos,
 instead, they rely on 2D face landmark detection, multi-view stereo, etc.\ to reconstruct the geometric shape of the face,
 which introduces additional complexity and cumulative error.
-\end{enumerate*}
 
-To address these problems, this paper proposes the following solutions:
-\begin{enumerate}
-\item This paper presents a scheme for collecting multi-view high-precision face data
-that utilizes readily available market components and a few simple DIY hardware for ease of implementation.
-This scheme establishes a fully controlled data processing pipeline,
-supporting all the requirements of 3D reconstruction, such as data collection, calibration, collation, etc.
-The scheme aims to achieve high-precision and high-efficiency, flexibility and scalability.
-The collected data provides a solid foundation for physically based high-precision reconstruction algorithms,
-in order to provide high-quality 3D training data for efficient reconstruction algorithms.
-\item To address the challenge of utilizing edge information from unconstrained photos,
+To address this problem, this paper proposes the following solution:
 this paper proposes an efficient 3D face reconstruction algorithm based on differentiable rendering.
 From a theoretical point of view, this paper analyzes and solves the problem of computing visibility gradients in situations where the background cannot be modeled,
 and proposes and implements an area-normalized pixel loss function.
@@ -111,11 +97,11 @@ However, the direct application of this method to the face results in abnormal g
 To overcome this issue, this paper further proposes a method based on SDF maps to eliminate the abnormal gradients.
 The proposed method enhances the accuracy and practicality of the reconstruction
 by enabling the face 3D model to align more precisely with the edges in the photo.
-\item This paper implements a complete automatic face reconstruction pipeline based on inverse rendering.
+
+Based on the proposed methods, This paper implements a complete automatic face reconstruction pipeline based on inverse rendering.
 It employs neural network methods for initialization and combines traditional methods to reconstruct the face texture.
 The resulting reconstructed face can be realistically re-rendered under certain views, lighting, and expression changes.
 This paper presents and evaluates the reconstruction results.
-\end{enumerate}
 
 \keyword{Keywords} Differentiable rendering; Face reconstruction; Face scanning
 

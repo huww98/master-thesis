@@ -5,12 +5,67 @@
 它们大多依赖2D人脸关键点识别的结果来监督几何形状的优化，但这需要额外的标注步骤，且会引入累计误差，稀疏的关键点信息也会限制优化的精度。
 也有方法利用传统的多目立体方法来确定几何形状，但这限制了其必须使用多视角照片作为输入。
 
-很多现有方法也运用了可微分渲染技术，但未能充分利用可见性梯度。
+很多3D人脸重建的现有方法也运用了可微分渲染技术，
+这些方法都只针对每个像素的着色结果分别计算了梯度，但并没有考虑到由于模型间相互遮挡而导致的可见性梯度。
 而该梯度正是所有梯度中的主要分量，对模型与照片中边缘的精确对齐有着重要作用。
+另一方面，在通用的可微分渲染的相关研究中，
+已经有很多方法可以高效地估计可见性梯度。
 然而，计算正确的可见性梯度需要同时具有前景和背景的模型，但在非受限环境照片中，由于背景多样，很难得到准确的背景模型。
-本章主要针对该问题，提出一种适应未知背景的可微分渲染方法，能够利用可见性梯度来优化模型，使其与照片中边缘对齐。
 
-\section{问题定义}
+针对该问题，本章提出一种适应未知背景的可微分渲染方法，能够利用可见性梯度来优化模型，使其与照片中边缘精确对齐。
+具体来说，本章提出了一种面积归一化的像素损失函数，通过收缩和扩展两项梯度详尽地说明了其性质，并介绍了一种高效实现的方式。
+本章也通过实验证明了该损失函数确实能够使模型与照片中边缘精确对齐，同时无需背景模型，也不依赖关键点等额外监督信息。
+
+\section{背景}
+
+\subsection{基于可微分渲染的逆渲染流程}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[
+    every node/.style={draw, minimum size=1.3cm},
+    data/.style={ellipse,fill=gray!20,minimum size=1.3cm},
+    intermediate/.style={data,fill=none},
+    param/.style={data,fill=blue!20},
+    legend/.style={minimum size=0.5cm},
+]
+    \linespread{1.2}\small
+    \node (render) {可微分渲染};
+    \node (render_p) [below=of render,data] {固定参数};
+    \node [align=center] (model) [left=of render] {渲染参数\\预测模型};
+    \node (model_p) [below=of model,param] {模型参数};
+    \node (image) [right=of render,intermediate] {渲染图像};
+    \node (loss) [right=of image, draw=red, thick] {损失函数};
+    \node (photo) [below=of loss,data] {目标照片};
+
+    \path [->] (render_p) edge (render)
+               (model_p.100) edge (model_p.100|-model.south)
+               (model.10) edge (model.10-|render.west)
+               (image.170-|render.east) edge (image.170)
+               (image.10) edge (image.10-|loss.west)
+               (photo) edge (loss);
+    \path [->, red, dashed] (image.350-|loss.west) edge (image.350)
+                            (image.190) edge (image.190-|render.east)
+                            (render.190) edge (render.190-|model.east)
+                            (model.280) edge (model.280|-model_p.north);
+
+    \node [right=1.5cm of loss, param, legend] (param_legend) {};
+    \node [right=2pt of param_legend, draw=none] {可学习参数};
+
+    \node [below=.2cm of param_legend, data, legend] (data_legend) {};
+    \node [right=2pt of data_legend, draw=none] {固定数据};
+
+    \node [below=.2cm of data_legend, legend, draw=none] (forward_legend) {};
+    \path [->] ($(forward_legend) + (-.5, 0)$) edge ($(forward_legend) + (.3, 0)$);
+    \node [right=2pt of forward_legend, draw=none] {前向传播};
+
+    \node [below=.2cm of forward_legend, legend, draw=none] (backward_legend) {};
+    \path [<-, red, dashed] ($(backward_legend) + (-.5, 0)$) edge ($(backward_legend) + (.3, 0)$);
+    \node [right=2pt of backward_legend, draw=none] {反向传播};
+\end{tikzpicture}
+\caption{基于可微分渲染的逆渲染基本流程}
+\label{fig:inv_rendering}
+\end{figure}
 
 可微分渲染旨在从参数化的3D模型，如三角形面片，纹理贴图等，渲染得到2D图片，同时计算该渲染结果关于其输入参数的梯度。
 然后可以优化渲染结果与照片间的误差，以期利用基于梯度的方法优化输入参数，从而改善渲染效果，使之更加接近现实。
@@ -22,7 +77,7 @@
 此时，现有方法选择忽略模型间相互遮挡产生的可见性梯度，而这会造成模型与照片的对齐不准确，如图\ref{fig:problem_a}所示。
 另一方面，若对背景进行很粗糙的建模，例如假设为全黑，则错误的梯度会引导前景模型拟合背景，最终虽然能得到更低的损失函数，但模型的几何形状却不能收敛到期望的位置，如图\ref{fig:problem_b}所示。
 
-\begin{figure}
+\begin{figure}[p]
 \centering
 \begin{subfigure}[t]{0.5\textwidth}
     \centering
