@@ -263,7 +263,7 @@
 由于景深浅，照片中物体边缘有较大模糊；
 或者在部分位置碰巧前景与背景颜色相似等。
 
-\section{收缩\&扩展梯度分析与高效实现}
+\section{收缩\&扩展梯度分析}
 
 本节将介绍如何将上一节提出的，定义在连续空间的损失函数应用于由离散的像素组成的图像上，
 并分析了其梯度，提出了该损失函数更高效的等效实现。
@@ -328,10 +328,69 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 由于该式仅对边缘区域计算，其关于$\mathbf{c}$的梯度也可以忽略。
 注意此处列出的$\tilde{\mathcal{L}}_n$仅包含了模型与未知背景间的可见性相关梯度，在实际中需要配合通常的可微分渲染以计算颜色$\mathbf{c}$和其他已知背景的可见性梯度。
 
+\TODO{讨论一下这个新函数的梯度，与之前推导的进行对比，分析误差。}
+
 根据以上分析，我们最终得到了一个附加的，仅定义在模型边缘处像素的损失函数。
 该函数的目的是在逆渲染的优化中，产生额外的收缩与扩展两项梯度，从而促进模型对齐到与未知的背景的边缘。
 
+\section{基于nvdiffrast的高效实现}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics{figures/antialias}
+    \caption[nvdiffrast抗锯齿模块的工作流程]{nvdiffrast抗锯齿模块的工作流程\citep{nvdiffrast}。}
+    \label{fig:aa}
+\end{figure}
+本文基于上文所述理论，基于nvdiffrast\citep{nvdiffrast}中的抗锯齿模块进行了实现。
+如图\ref{fig:aa}所示，该模块修改过的像素为左图的B和右图的A。
+以右图为例，其中绿色的部分覆盖该像素的面积占整个像素面积的比例为覆盖率$\sigma$。
+记修改前绿色部分的像素值为$\mathbf{c}$，白色背景的像素值为$\mathcal{J}$。
+则修改后的像素值为：
+\begin{equation}
+\mathbf{c}' = \sigma\mathbf{c} + (1-\sigma)\mathcal{J}
+\text{。}
+\end{equation}
+
+基于该模块，本文使用目标图像$\mathcal{I}$作为背景进行渲染，即$\mathcal{J}=\mathcal{I}$，则公式\ref{eq:loss_n_tilde}中的收缩项可进一步表示为：
+\begin{equation}
+\sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1 =
+\left\| \sigma\mathbf{c} + (1-\sigma)\mathcal{I} - \mathcal{I} \right\|_1 =
+\left\| \mathbf{c}' - \mathcal{I} \right\|_1
+\text{，}
+\label{eq:impl_nvdiffrast}
+\end{equation}
+其中$\mathbf{c}'$为在目标图像$\mathcal{I}$之上渲染前景模型而得到的渲染图像。如此便可将收缩项中的$\sigma$完全交给该抗锯齿模块处理。
+更好的是，在同一抗锯齿模块中还可以同时处理其他已知背景部分的可见性梯度，例如下巴和脖子间，鼻子和脸颊间。
+
+但nvdiffrast的覆盖率计算是稀疏的，即有部分$\sigma\in(0,1)$的像素无法被检测到，检测的概率和所用3D模型的网格密度有关。
+而扩展项的梯度与收缩项相互制衡，因此其梯度的计算必须与收缩项相互耦合，即他们稀疏的模式必须相同。
+又注意到扩展项的梯度的大小对于边缘的每一个像素是均匀的，%因此本实现直接在反向传播时，对所有实际检测到$\sigma\in(0,1)$的像素添加上该项梯度。该方法也基本无额外内存和运算开销。
+因此本文在实现扩展项梯度时，直接修改了nvdiffrast的CUDA代码，
+在前向传播的过程中，本文利用其位域中尚未使用的空间，标记了所有前景模型和未知背景间所有实际检测到的边缘像素对，
+并额外输出一个占位变量$\tilde{\sigma}$，该变量的值没有定义，它仅用于接收PyTorch自动求导框架传递的扩展项梯度的系数，以此避免在每次前向传播中计算前景模型覆盖的总面积。
+在反向传播的过程中，本文直接将占位变量获得的梯度，传递到所有之前标记的边缘上，从而实现了扩展项梯度的计算。
+在计算损失函数\eqref{eq:loss_n_tilde}时，$\tilde{\sigma}$将取代$\sum\sigma$用于从PyTorch中接收扩展项梯度。
+
+基于以上介绍的收缩和扩展项的实现方式，在基于nvidffrast的实现中，最终可在PyTorch的代码中编写的损失函数为：
+\begin{equation}
+\tilde{\mathcal{L}}_n = \frac{1}{|\mathcal{A}|} \sum \left\| \mathbf{c}' - \mathcal{I} \right\|_1 - e \tilde{\sigma},
+\quad e = \frac{\sum\left\| \mathbf{c}' - \mathcal{I} \right\|_1}{|\mathcal{A}|^2}+\alpha
+\label{eq:loss_n_impl}
+\end{equation}
+其中$e$为扩展项的梯度的系数。由于$\tilde{\sigma}$的值没有定义，因此在梯度时应将$e$视为常数（在PyTorch中调用\texttt{detach()}），防止向它传递错误的梯度。
+基于该实现的整个逆渲染流程如算法\ref{alg:impl_nvdiffrast}所示。
+
+nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过大，进而导致模型不能收敛到期望的位置，
+因此可能还需要手动将相关梯度乘以一个放大系数进行补偿。
+下文将对该问题进一步讨论，并提出另一种缓解措施。
+
+\subsection{性能分析}
+
+\TODO{性能分析}
+
 \section{实验结果}
+
+\subsection{立方体姿态估计}
 
 与SoftRas\citep{softras}类似，本文设计了一个仅使用可微分渲染估计立方体姿态的实验。
 该实验将一个确定的，但每个面具有不同颜色的立方体放置在场景中的随机位置，并使用随机且未知的背景渲染一张图像。
@@ -346,8 +405,8 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 因此本文选择在立方体姿态真实值附近随机生成初始值，以提高优化的成功率。
 具体方法为，立方体的棱长为$2$，立方体中心坐标均匀分布在真值附近的$[-0.3,0.3]^3$的立方体内，
 并绕任意旋转轴关于其中心旋转$[0,30°]$的角度。
-该优化过程使用PyTorch\citep{pytorch}和nvdiffrast实现（具体实现方法见第\ref{sec:method_discuss}节），被优化的参数是表示SE(3)变换的6个参数。
-优化的目标函数为公式\eqref{eq:loss_n_tilde}，且未使用任何正则项。
+该优化过程使用上述基于PyTorch\citep{pytorch}和nvdiffrast实现，被优化的参数是表示SE(3)变换的6个参数。
+优化的目标函数为公式\eqref{eq:loss_n_impl}，且未使用任何正则项。
 本文使用Adam\citep{adam}优化器，学习率为$2\times 10^{-4}$，其余参数为默认值。
 渲染的分辨率为$128\times128$，运行了5000次优化迭代。
 本实现在NVIDIA RTX3060显卡上，在批大小128的情况下，每秒能运行约180次优化迭代，整个优化过程需要约27秒。
@@ -423,47 +482,15 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 (c)、(d)、(e)对比可以看出越准确的背景模型可产生越好的优化结果，这证实了在一般的可微分渲染应用中，准确的背景模型的必要性。
 而利用本章提出的方法即可在不对背景进行建模的情况下，以较高的概率得到准确的结果。
 
+\subsection{3D人脸重建}
+
+\TODO{与无法正常收敛的、不使用可见性梯度的、使用关键点监督的对比，展示没有SDF的局限性}
+
 然而，该方法直接应用到人脸时会受到人脸模型人工裁剪的边缘的影响而无法获得理想的效果。
 第\ref{chap:recon}章中将介绍本文如何解决该问题，并介绍将本章方法应用到人脸重建的更多实验。
 
 \section{讨论}
 \label{sec:method_discuss}
-
-\paragraph{基于nvdiffrast的实现}
-本文基于上文所述理论，基于nvdiffrast\citep{nvdiffrast}中的抗锯齿模块进行了实现。
-\begin{figure}[ht]
-    \centering
-    \includegraphics{figures/antialias}
-    \caption[nvdiffrast抗锯齿模块的工作流程]{nvdiffrast抗锯齿模块的工作流程\citep{nvdiffrast}。}
-    \label{fig:aa}
-\end{figure}
-如图\ref{fig:aa}所示，该模块修改过的像素为左图的B和右图的A。
-其中绿色的部分覆盖该像素的面积占整个像素面积的比例为覆盖率$\sigma$。
-记修改前绿色部分的像素值为$\mathbf{c}$，白色背景的像素值为$\mathcal{J}$。
-则修改后的像素值为：
-\begin{equation}
-\mathbf{c}' = \sigma\mathbf{c} + (1-\sigma)\mathcal{J}
-\text{。}
-\end{equation}
-
-基于该模块，本文使用目标图像$\mathcal{I}$作为背景进行渲染，即$\mathcal{J}=\mathcal{I}$，则公式\ref{eq:loss_n_tilde}中的收缩项可进一步表示为：
-\begin{equation}
-\sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1 =
-\left\| \sigma\mathbf{c} + (1-\sigma)\mathcal{I} - \mathcal{I} \right\|_1 =
-\left\| \mathbf{c}' - \mathcal{I} \right\|_1
-\text{。}
-\label{eq:impl_nvdiffrast}
-\end{equation}
-如此便可将收缩项中的$\sigma$完全交给该抗锯齿模块处理，且几乎没有额外的计算量。
-更好的是，在同一抗锯齿模块中还可以同时处理其他已知背景部分的可见性梯度，例如下巴和脖子间，鼻子和脸颊间。
-
-但nvdiffrast的覆盖率计算是稀疏的，即有部分$\sigma\in(0,1)$的像素无法被检测到，检测的概率和所用3D模型的网格密度有关。
-而扩展项的梯度与收缩项相互制衡，因此其梯度的计算必须与收缩项相互耦合，即他们稀疏的模式必须相同。
-又注意到扩展项的梯度对于边缘的每一个像素是均匀的，因此本实现直接在反向传播时，对所有实际检测到$\sigma\in(0,1)$的像素添加上该项梯度。该方法也基本无额外内存和运算开销。
-
-nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过大，进而导致模型不能收敛到期望的位置，
-因此可能还需要手动将相关梯度乘以一个放大系数进行补偿。
-下文将对该问题进一步讨论，并提出另一种缓解措施。
 
 \paragraph{L1距离的必要性}
 本文中所有的讨论都是基于渲染图像与目标图像的L1距离的，之所以不使用L2或其他距离，主要是基于以下原因：
