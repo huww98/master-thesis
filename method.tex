@@ -243,7 +243,7 @@
 \text{。}
 \end{align}
 其函数图像如图\ref{fig:one_dim_loss}b、c、d所示。
-该函数第一项的分子为公式\ref{eq:loss_l1_area}中的第一项前景部分，显然该项是随着$\theta$单调递增的。
+该函数第一项的分子为公式\eqref{eq:loss_l1_area}中的第一项前景部分，显然该项是随着$\theta$单调递增的。
 由于没有了背景部分的制衡，单独使用该项将导致模型收敛到一个很小的区域。
 于是本文将该项以前景区域的面积进行归一化，即$\mathcal{L}_n$的第一项。
 若该模型的拟合误差在前景区域内是均匀分布的，则该项将会是一个常数，不会引导模型减小面积。
@@ -290,10 +290,10 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 \text{。}
 \label{eq:loss_n_pixel}
 \end{equation}
-与之前定义在连续空间的公式\ref{eq:loss_n}相比，该定义假设了同一个像素范围内的图像颜色保持不变。
+与之前定义在连续空间的公式\eqref{eq:loss_n}相比，该定义假设了同一个像素范围内的图像颜色保持不变。
 
 下面将对该损失函数的梯度进行分析，以探寻其性质和可能的实现方式。
-对公式\ref{eq:loss_n_pixel}求导可得：
+对公式\eqref{eq:loss_n_pixel}求导可得：
 \begin{equation}
 \frac{\partial\mathcal{L}_n}{\partial\theta} =
 \sum_{i}\left[
@@ -314,7 +314,7 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 \end{enumerate*}
 这些特点均和之前的连续空间定义的损失函数相同。
 
-虽然可以直接根据公式\ref{eq:loss_n_pixel}使用自动微分计算梯度，
+虽然可以直接根据公式\eqref{eq:loss_n_pixel}使用自动微分计算梯度，
 但其中的覆盖率$\sigma$仅在模型边界上才不为0，其余部分的$\sigma$并不需要保存到内存中。因此我们可以实现以下损失函数：
 \begin{equation}
 \tilde{\mathcal{L}}_n =
@@ -355,7 +355,7 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 \text{。}
 \end{equation}
 
-基于该模块，本文使用目标图像$\mathcal{I}$作为背景进行渲染，即$\mathcal{J}=\mathcal{I}$，则公式\ref{eq:loss_n_tilde}中的收缩项可进一步表示为：
+基于该模块，本文使用目标图像$\mathcal{I}$作为背景进行渲染，即$\mathcal{J}=\mathcal{I}$，则公式\eqref{eq:loss_n_tilde}中的收缩项可进一步表示为：
 \begin{equation}
 \sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1 =
 \left\| \sigma\mathbf{c} + (1-\sigma)\mathcal{I} - \mathcal{I} \right\|_1 =
@@ -527,7 +527,7 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 \paragraph{L1距离的必要性}
 本文中所有的讨论都是基于渲染图像与目标图像的L1距离的，之所以不使用L2或其他距离，主要是基于以下原因：
 \begin{itemize}
-\item 直接的原因是公式\ref{eq:impl_nvdiffrast}中$\sigma$和求距离的运算的交换需要L1距离。
+\item 直接的原因是公式\eqref{eq:impl_nvdiffrast}中$\sigma$和求距离的运算的交换需要L1距离。
 \item 根本的原因是若将图像看作二维连续函数的离散化，则离散化的操作应尽可能小地对优化造成影响。
 使用L1距离才能实现与像素离散化的方式无关的可见性梯度。
 如图\ref{fig:problem}c所示，虽然该例子中图像分辨率很低，但其损失函数的梯度仍然是非常平滑的，并未受到像素离散化的影响。
