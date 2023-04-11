@@ -263,7 +263,7 @@
 由于景深浅，照片中物体边缘有较大模糊；
 或者在部分位置碰巧前景与背景颜色相似等。
 
-\section{收缩\&扩展梯度分析}
+\section{收缩和扩展梯度分析}
 
 本节将介绍如何将上一节提出的，定义在连续空间的损失函数应用于由离散的像素组成的图像上，
 并分析了其梯度，提出了该损失函数更高效的等效实现。
@@ -272,8 +272,9 @@
 \begin{equation}
 \hat{\mathcal{I}}(i;\theta) = (\mathbf{c}_i, \sigma_i)
 \text{，}
+\label{eq:rendering}
 \end{equation}
-其中$i$为像素索引，$\theta$为前景模型的参数，
+其中$i$为像素索引，$\theta$为前景模型的渲染参数，
 $\mathbf{c}_i\in\mathbb{R}^3$为着色后的像素颜色，且对前景模型覆盖区域外的像素没有定义，
 $\sigma_i\in[0,1]$为前景模型覆盖该像素的覆盖率，即该像素中被模型覆盖的面积占其总面积的比例。
 $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考虑其关于$\theta$的梯度。
@@ -342,6 +343,9 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
     \label{fig:aa}
 \end{figure}
 本文基于上文所述理论，基于nvdiffrast\citep{nvdiffrast}中的抗锯齿模块进行了实现。
+该抗锯齿模块的作用为：对于每个处于模型相互遮挡的边缘的像素，该模块计算其覆盖率$\sigma$，并根据覆盖率调整该像素渲染颜色；对于其他不处于边缘的像素则不做处理。
+如此一来，该模块虽然没有显式地输出覆盖率$\sigma$，但它使渲染结果成为了覆盖率的连续函数，该模块正是nvdiffrast中处理可见性梯度的关键。
+然而，该模块工作时仍需要指定一个背景。
 如图\ref{fig:aa}所示，该模块修改过的像素为左图的B和右图的A。
 在该图的四个像素中，绿色的部分覆盖该像素的面积占整个像素面积的比例为覆盖率$\sigma$。
 记修改前绿色部分的像素值为$\mathbf{c}$，白色背景的像素值为$\mathcal{J}$。
@@ -379,6 +383,28 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 \end{equation}
 其中$e$为扩展项的梯度的系数。由于$\tilde{\sigma}$的值没有定义，因此在梯度时应将$e$视为常数（在PyTorch中调用\texttt{detach()}），防止向它传递错误的梯度。
 基于该实现的整个逆渲染流程如算法\ref{alg:impl_nvdiffrast}所示。
+\begin{algorithm}[t]
+    \caption{基于nvdiffrast的逆渲染流程}
+    \label{alg:impl_nvdiffrast}
+    \begin{algorithmic}[1]
+        \Require 前景渲染模型$\hat{\mathcal{I}}$，模型参数初始化$\theta^{(0)}$，目标图像$\mathcal{I}$
+        \Procedure{逆渲染优化}{$\theta^{(0)}$, $\mathcal{I}$}
+            \State 计算前景区域面积$|\mathcal{A}|$
+            \For{$i=1$ to $N$}
+                \State $\mathbf{c} \gets \hat{\mathcal{I}}\left(\theta^{(i-1)}\right)$
+                    \Comment{前景模型逐像素正向渲染}
+                \State $\mathbf{c}_j \gets \begin{cases} \mathbf{c}_j &\text{if } j\in\mathcal{A} \\ \mathcal{I}_j &\text{otherwise} \end{cases}$
+                    \Comment{将前景渲染于目标图像之上}
+                \State $\mathbf{c}', \tilde{\sigma} \gets \text{抗锯齿模块}(\mathbf{c})$
+                \State $\tilde{\mathcal{L}}_n \gets \frac{1}{|\mathcal{A}|} \sum \left\| \mathbf{c}' - \mathcal{I} \right\|_1 - e \tilde{\sigma}$
+                    \Comment{计算损失函数，公式\eqref{eq:loss_n_impl}}
+                \State $\theta^{(i)} \gets \theta^{(i-1)} - \eta \nabla_{\theta} \tilde{\mathcal{L}}_n$
+                    \Comment{利用PyTorch的自动微分计算梯度并更新参数}
+            \EndFor
+            \State \Return $\theta^{(N)}$
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
 
 nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过大，进而导致模型不能收敛到期望的位置，
 因此可能还需要手动将相关梯度乘以一个放大系数进行补偿。
