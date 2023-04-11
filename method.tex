@@ -303,6 +303,7 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
     }{\left(\sum_j\sigma_j\right)^2} - \alpha
 \right]\frac{\partial\sigma_i}{\partial\theta}
 \text{。}
+\label{eq:loss_n_pixel_gradient}
 \end{equation}
 注意在该推导中我们忽略了$\mathbf{c}$关于$\theta$的梯度，这项梯度由具体的着色模型确定，通常可以使用自动微分求得。
 从该推导结果中可以发现以下特点：
@@ -319,17 +320,29 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 \begin{equation}
 \tilde{\mathcal{L}}_n =
 \underbrace{\frac{1}{|\mathcal{A}|}\sum_{i|\sigma\in(0,1)} \sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1}_{\text{收缩}} -
-\underbrace{\left[\frac{\sum\left\| \mathbf{c} - \mathcal{I} \right\|_1}{|\mathcal{A}|^2}+\alpha\right]\sum_{i|\sigma\in(0,1)} \sigma}_{\text{扩展}}
+\underbrace{\sg\left[\frac{\sum\sigma\left\| \mathbf{c} - \mathcal{I} \right\|_1}{|\mathcal{A}|^2}+\alpha\right]\sum_{i|\sigma\in(0,1)} \sigma}_{\text{扩展}}
 \text{，}
 \label{eq:loss_n_tilde}
 \end{equation}
 其中$|\mathcal{A}|$为优化开始时前景模型覆盖的面积，即$\sum_{i} \sigma$。
-由于基于梯度的逆渲染方法通常并不能处理大范围的模型移动，因此该项可以近似看作常数。
-该式也假设了边缘区域相对于整张图片来说是很小的。
-由于该式仅对边缘区域计算，其关于$\mathbf{c}$的梯度也可以忽略。
+$\sg$为梯度停止操作符，表示在求导时该项视为常数。
+依据该公式则仅需要处理位于前景模型边缘处的像素的覆盖率$\sigma$，其余部分则无需消耗额外的内存和计算资源。
 注意此处列出的$\tilde{\mathcal{L}}_n$仅包含了模型与未知背景间的可见性相关梯度，在实际中需要配合通常的可微分渲染以计算颜色$\mathbf{c}$和其他已知背景的可见性梯度。
 
-\TODO{讨论一下这个新函数的梯度，与之前推导的进行对比，分析误差。}
+这个新定义的损失函数的梯度为：
+\begin{equation}
+\frac{\partial\tilde{\mathcal{L}}_n}{\partial\theta} =
+\sum_{i}\left[
+    \frac{
+        \textstyle \left\| \mathbf{c}_i - \mathcal{I}_i \right\|_1 |\mathcal{A}| -
+        \textstyle \sum_j \sigma_j \left\| \mathbf{c}_j - \mathcal{I}_j \right\|_1
+    }{|\mathcal{A}|^2} - \alpha
+\right]\frac{\partial\sigma_i}{\partial\theta}
+\end{equation}
+与之前的梯度结果\eqref{eq:loss_n_pixel_gradient}对比，该函数使用常数$|\mathcal{A}|$代替了变量$\sum_{i} \sigma$，以避免在每次迭代中计算前景模型覆盖面积。
+由于基于梯度的逆渲染方法通常并不能处理大范围的模型移动，因此该项可以近似看作常数，不会带来太大的误差。
+然而这样的替换会导致原本“面积归一化”部分带来的梯度缺失，
+因此$\tilde{\mathcal{L}}_n$通过手动计算扩展项的系数补足了相关梯度。
 
 根据以上分析，我们最终得到了一个附加的，仅定义在模型边缘处像素的损失函数。
 该函数的目的是在逆渲染的优化中，产生额外的收缩与扩展两项梯度，从而促进模型对齐到与未知的背景的边缘。
