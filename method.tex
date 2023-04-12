@@ -352,7 +352,7 @@ $\sg$为梯度停止操作符，表示在求导时该项视为常数。
 \begin{figure}[ht]
     \centering
     \includegraphics{figures/antialias}
-    \caption[nvdiffrast抗锯齿模块的工作流程]{nvdiffrast抗锯齿模块的工作流程\citep{nvdiffrast}。}
+    \caption[nvdiffrast抗锯齿模块的工作流程]{nvdiffrast抗锯齿模块的工作流程\citep{nvdiffrast}}
     \label{fig:aa}
 \end{figure}
 本文基于上文所述理论，基于nvdiffrast\citep{nvdiffrast}中的抗锯齿模块进行了实现。
@@ -552,7 +552,17 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 这组实验的结果如表\ref{tab:cube_opt2}所示。
 可见本章提出的损失函数确实能在未知背景的情况下正确产生极值点。
 本章方法不仅在所有例子中均能正确收敛，且收敛的精度高于对比的基线方法一个数量级以上。
-相比之下，如果使用非常不准确的黑色背景，其结果甚至比初始化更低。
+相比之下，如果使用非常不准确的黑色背景，其结果甚至比初始化时更低。
+\begin{figure}
+    \import{build/figures/}{loss_vs_rot.pgf}
+    \caption{损失函数与旋转误差的关系}
+    \label{fig:loss_vs_rot}
+\end{figure}
+如图\ref{fig:loss_vs_rot}展示了在迭代优化过程中不同方法的损失函数和旋转误差的变化情况。
+图中数据为128张随机图像的平均值。
+从图中可见虽然每种方法的损失函数都在优化中不断下降，
+但如果使用不准确的背景模型，旋转误差却反而会上升。
+这证明了本章提出的损失函数可以在误差的零点处正确产生极值点，而使用不准确的背景模型则不能。
 
 \subsection{3D人脸重建}
 
