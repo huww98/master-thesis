@@ -566,9 +566,74 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 
 \subsection{3D人脸重建}
 
-\TODO{与无法正常收敛的、不使用可见性梯度的、使用关键点监督的对比，展示没有SDF的局限性}
+为进一步验证本章方法在3D人脸重建任务中的有效性，本节将在\citet{deep3d}预测的3DMM基础上，使用本章提出的损失函数进一步进行逆渲染优化。
+优化过程中仅使用了本章提出的面积归一化的像素损失和一些\citet{deep3d}也用到的正则化项。
+实验结果如图\ref{fig:face_opt_vis}所示。
+可见本章的方法(c)相比直接逐像素渲染而不考虑可见性梯度(d)和使用关键点监督(e)相比，可以更好地将模型对齐到照片中的边缘。
+使用不准确的黑色背景(f)计算可见性梯度则会导致模型无法正确收敛。
+在该实验中各种方法的结果相差不大，这是因为初始化已经较为准确，且所有方法的优化空间均受到3DMM模型的限制。
+第\ref{chap:recon}章的实验将展示在更高的自由度下，本章方法在边缘对齐方面更大的优势。
+\begin{figure}
+\begin{tikzpicture}[
+    node distance=0pt and 0pt,
+    image/.style={inner sep=0pt, outer sep=0pt},
+    align result/.style={image, opacity=0.6, minimum height=1in},
+]
+    \node (a) [image] {\includegraphics[height=1.28in]{figures/face_opt/target_hs}};
+    \node (b) [image,right=of a] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/initial}};
+    \node (c) [image,right=of b] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/normal/final}};
+    \node (d) [image,right=of c] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/no_aa/final}};
+    \node (e) [image,right=of d] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/lm/final}};
+    \node (f) [image,right=of e] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/black_bg/final}};
 
-然而，该方法直接应用到人脸时会受到人脸模型人工裁剪的边缘的影响而无法获得理想的效果。
+    \node (a) [image, below=of a] {\includegraphics[height=1in]{figures/face_opt/align_target}};
+
+    \node (b) [image, below=of b] {\includegraphics[height=1in]{figures/face_opt/align_target}};
+    \node [align result] at (b) {\includegraphics[height=1in]{figures/face_opt/alpha_init}};
+
+    \node (c) [image, below=of c] {\includegraphics[height=1in]{figures/face_opt/align_target}};
+    \node [align result] at (c) {\includegraphics[height=1in]{figures/face_opt/normal/alpha_fitted}};
+
+    \node (d) [image, below=of d] {\includegraphics[height=1in]{figures/face_opt/align_target}};
+    \node [align result] at (d) {\includegraphics[height=1in]{figures/face_opt/no_aa/alpha_fitted}};
+
+    \node (e) [image, below=of e] {\includegraphics[height=1in]{figures/face_opt/align_target}};
+    \node [align result] at (e) {\includegraphics[height=1in]{figures/face_opt/lm/alpha_fitted}};
+
+    \node (f) [image, below=of f] {\includegraphics[height=1in]{figures/face_opt/align_target}};
+    \node [align result] at (f) {\includegraphics[height=1in]{figures/face_opt/black_bg/alpha_fitted}};
+
+    \node (a) [image, below=of a] {\includegraphics[height=1in]{figures/face_opt/align_target_2}};
+
+    \node (b) [image, below=of b] {\includegraphics[height=1in]{figures/face_opt/align_target_2}};
+    \node [align result] at (b) {\includegraphics[height=1in]{figures/face_opt/alpha_init_2}};
+
+    \node (c) [image, below=of c] {\includegraphics[height=1in]{figures/face_opt/align_target_2}};
+    \node [align result] at (c) {\includegraphics[height=1in]{figures/face_opt/normal/alpha_fitted_2}};
+
+    \node (d) [image, below=of d] {\includegraphics[height=1in]{figures/face_opt/align_target_2}};
+    \node [align result] at (d) {\includegraphics[height=1in]{figures/face_opt/no_aa/alpha_fitted_2}};
+
+    \node (e) [image, below=of e] {\includegraphics[height=1in]{figures/face_opt/align_target_2}};
+    \node [align result] at (e) {\includegraphics[height=1in]{figures/face_opt/lm/alpha_fitted_2}};
+
+    \node (f) [image, below=of f] {\includegraphics[height=1in]{figures/face_opt/align_target_2}};
+    \node [align result] at (f) {\includegraphics[height=1in]{figures/face_opt/black_bg/alpha_fitted_2}};
+
+    \small
+    \node [below=of a] {(a)目标图像};
+    \node [below=of b] {(b)初始化};
+    \node [below=of c] {(c)本章方法};
+    \node [below=of d] {(d)逐像素};
+    \node [below=of e] {(e)关键点};
+    \node [below=of f] {(f)黑色背景};
+\end{tikzpicture}
+
+\caption{人脸重建监督方法对比}
+\label{fig:face_opt_vis}
+\end{figure}
+
+然而，该方法直接应用到人脸时有时会受到人脸模型人工裁剪的边缘的影响而无法获得理想的效果。
 第\ref{chap:recon}章中将介绍本文如何解决该问题，并介绍将本章方法应用到人脸重建的更多实验。
 
 \section{讨论}
