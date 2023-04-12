@@ -93,7 +93,7 @@
 
 \newcommand{\keyword}[1]{
     \vskip\baselineskip
-    {\noindent\heiti #1}：
+    {\noindent\heiti\bf #1}%
 }
 
 \clubpenalty=2000
