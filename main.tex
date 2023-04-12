@@ -20,7 +20,7 @@
 
 \newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}\GenericWarning{}{LaTeX Warning: TODO: #1}}
 
-\title{基于可微分渲染的高效3D人脸重建\texorpdfstring{\\}{}方法研究}
+\title{基于可微分渲染的3D人脸重建方法研究}
 \titleEN{Efficient 3D Face Reconstruction Based on Differentiable~Rendering}
 \classificationnumber{TP37}
 
@@ -58,19 +58,21 @@
 \frontmatter
 \chapter{摘\texorpdfstring{\quad}{}要}
 
-高效3D人脸重建技术旨在从非受限环境拍摄的照片中恢复出人脸的3D模型，
+3D人脸重建技术旨在从非受限环境拍摄的照片中恢复出人脸的3D模型，
 这些模型已被广泛应用于人脸识别、人脸表情捕捉、人脸跟踪、人脸动画合成等任务中。
-然而，这些模型还难以应用于需要直接渲染图像的游戏、影视等场景中，
+然而，基于少量非受限环境照片重建的模型还难以应用于需要直接渲染图像的游戏、影视等场景中，
 具体来说，现有的基于非受限环境照片的重建方法还存在如下问题：
 现有方法未能充分利用照片中的边缘信息，它们依赖2D人脸关键点识别、多目立体等方法以重建人脸的几何形状，这会引入额外的复杂性和累积误差。
 
-对此，本文提出了相应的解决方案：
 为解决非受限环境照片中边缘信息难以利用的问题，
-本文提出了一种基于可微分渲染的高效3D人脸重建算法。
-本文从理论上分析并解决了无法对背景建模时的可见性梯度计算问题，
-提出并实现了一种面积归一化的像素损失函数。
-然而若将该方法直接应用于人脸，在人工裁剪的模型边缘会产生异常梯度，
-本文进一步提出了一种基于SDF贴图的方法消除这些异常梯度，
+本文提出了一种基于可微分渲染的3D人脸重建算法。
+本文从理论上分析了无法对背景建模时的可见性梯度计算问题，
+提出了一种面积归一化的像素损失函数。
+本文分析了该损失函数的作用机理，并与现有的通用可微分渲染研究中的可见性梯度计算方法相结合，高效实现了该损失函数。
+
+然而人脸只是整个人的一部分，当人脸模型从整个人上裁剪下来用于重建时，在人工裁剪的模型边缘会产生异常梯度。
+为解决该问题，
+本文进一步提出了一种基于SDF贴图的方法对所有渲染图像中的边缘进行分类，从而消除这些异常梯度，
 最终使人脸3D模型能更精确地对齐到照片中的边缘，从而提高了重建的准确性和实用性。
 
 基于本文提出的这些方法，本文实现了一个基于逆渲染的完整自动化人脸重建流程。
@@ -82,7 +84,7 @@
 
 \chapter{Abstract}
 
-Efficient 3D face reconstruction aims to recover 3D models of faces from a small number of unconstrained photos,
+3D face reconstruction aims to recover 3D models of faces from a small number of unconstrained photos,
 which have been widely applied to face recognition, face expression capturing, face tracking, face animation synthesis, etc.
 However, these models are still difficult to apply to scenes that require direct image rendering, such as games and movies.
 Specifically, the existing reconstruction methods still have the following problem:
@@ -91,7 +93,7 @@ instead, they rely on 2D face landmark detection, multi-view stereo, etc.\ to re
 which introduces additional complexity and cumulative error.
 
 To address this problem, this paper proposes the following solution:
-this paper proposes an efficient 3D face reconstruction algorithm based on differentiable rendering.
+this paper proposes a 3D face reconstruction algorithm based on differentiable rendering.
 From a theoretical point of view, this paper analyzes and solves the problem of computing visibility gradients in situations where the background cannot be modeled,
 and proposes and implements an area-normalized pixel loss function.
 However, the direct application of this method to the face results in abnormal gradients at the artificial cutting of the model edges.
