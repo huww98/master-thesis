@@ -449,11 +449,11 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 如SoftRas中所述，该优化问题有很多局部最优点，但本文的重点并不在此。
 因此本文选择在立方体姿态真实值附近随机生成初始值，以提高优化的成功率。
 具体方法为，立方体的棱长为$2$，立方体中心坐标均匀分布在真值附近的$[-0.3,0.3]^3$的立方体内，
-并绕任意旋转轴关于其中心旋转$[0,30°]$的角度。
+并绕任意旋转轴关于其中心旋转$[0,15°]$的角度。
 该优化过程使用上述基于PyTorch\citep{pytorch}和nvdiffrast实现，被优化的参数是表示SE(3)变换的6个参数。
 优化的目标函数为公式\eqref{eq:loss_n_impl}，且未使用任何正则项。
 本文使用Adam\citep{adam}优化器，学习率为$2\times 10^{-4}$，其余参数为默认值。
-渲染的分辨率为$128\times128$，运行了5000次优化迭代。
+渲染的分辨率为$128\times128$，运行了4000次优化迭代。
 本实现在NVIDIA RTX3060显卡上，在批大小128的情况下，每秒能运行约180次优化迭代，整个优化过程需要约27秒。
 为保证公平对比，以下实验结果中，每种方法均对相同的2048张随机图像进行了测试，每种方法优化的初始化位置也是相同的。
 
@@ -466,11 +466,11 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
         方法       & 成功率（\%） & 旋转误差（°） & 位置误差 \\
         \midrule
         初始化      &  6.15 & 3.71 & 0.294 \\
-        黑色背景    & 33.06 & 1.64 & 0.175 \\
-        数学期望背景& 75.83 & 0.57 & 0.037 \\
-        本文方法    & \textbf{76.42} & \textbf{0.25} & \textbf{0.010} \\
+        黑色背景    & 67.14 & 1.53 & 0.234 \\
+        数学期望背景& 91.02 & 0.59 & 0.064 \\
+        本文方法    & \textbf{96.19} & \textbf{0.40} & \textbf{0.035} \\
         \midrule
-        理想背景    & 97.22 & 0.06 & 0.001 \\
+        理想背景    & 98.83 & 0.06 & 0.001 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -496,12 +496,12 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
         \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/cube_opt/my/110.png}};
         \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/cube_opt/truth/110.png}};
 
-        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/cube_opt/target/118.png}};
-        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/cube_opt/init/118.png}};
-        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/cube_opt/black/118.png}};
-        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/cube_opt/exp/118.png}};
-        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/cube_opt/my/118.png}};
-        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/cube_opt/truth/118.png}};
+        \node (a) [image,below=of a] {\includegraphics[width=1.05in]{figures/cube_opt/target/49.png}};
+        \node (b) [image,right=of a] {\includegraphics[width=1.05in]{figures/cube_opt/init/49.png}};
+        \node (c) [image,right=of b] {\includegraphics[width=1.05in]{figures/cube_opt/black/49.png}};
+        \node (d) [image,right=of c] {\includegraphics[width=1.05in]{figures/cube_opt/exp/49.png}};
+        \node (e) [image,right=of d] {\includegraphics[width=1.05in]{figures/cube_opt/my/49.png}};
+        \node (f) [image,right=of e] {\includegraphics[width=1.05in]{figures/cube_opt/truth/49.png}};
 
         \small
         \node [below=of a] {(a)目标图像};
@@ -524,7 +524,9 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 \end{figure}
 图\ref{fig:cube_opt_vis}可视化了两组实验的结果。
 可见若使用不准确的的黑色或数学期望背景模型，则优化过程很容易受到背景中与前景相似的颜色的影响，导致无法正确收敛。
-(c)、(d)、(e)对比可以看出越准确的背景模型可产生越好的优化结果，这证实了在一般的可微分渲染应用中，准确的背景模型的必要性。
+(c)、(d)、(e)对比可以看出越准确的背景模型可产生越好的优化结果。
+不准确的背景模型会导致优化过程使用前景模型拟合背景，从而过度扩大前景的覆盖范围。
+这证实了在一般的可微分渲染应用中，准确的背景模型的必要性。
 而利用本章提出的方法即可在不对背景进行建模的情况下，以较高的概率得到准确的结果。
 
 \subsection{3D人脸重建}
