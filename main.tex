@@ -92,12 +92,18 @@ The existing methods do not fully utilize the edge information in the photos,
 instead, they rely on 2D face landmark detection, multi-view stereo, etc.\ to reconstruct the geometric shape of the face,
 which introduces additional complexity and cumulative error.
 
-To address this problem, this paper proposes the following solution:
+To address the difficulty of utilizing edge information in unconstrained photos,
 this paper proposes a 3D face reconstruction algorithm based on differentiable rendering.
-From a theoretical point of view, this paper analyzes and solves the problem of computing visibility gradients in situations where the background cannot be modeled,
-and proposes and implements an area-normalized pixel loss function.
-However, the direct application of this method to the face results in abnormal gradients at the artificial cutting of the model edges.
-To overcome this issue, this paper further proposes a method based on SDF maps to eliminate the abnormal gradients.
+This paper analyzes the problem of computing visibility gradients in situations where the background cannot be modeled,
+and proposes an area-normalized pixel loss function.
+This paper analyzes the mechanism of this loss function,
+and combines it with the existing methods for computing visibility gradients in general differentiable rendering to implement it efficiently.
+
+However, the face model is only part of the whole human model.
+When the face model is cropped for reconstruction,
+there will be abnormal gradients at the artificial cut edges.
+To overcome this issue, this paper further proposes a method based on SDF maps to classify all edges in the rendered images,
+which eliminates these abnormal gradients.
 The proposed method enhances the accuracy and practicality of the reconstruction
 by enabling the face 3D model to align more precisely with the edges in the photo.
 
