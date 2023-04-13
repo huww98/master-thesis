@@ -398,7 +398,7 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 在该实现中，抗锯齿除了能得到观感更好的图像，其最主要的作用是在反向传播时计算物体间相互遮挡造成的可见性相关梯度。
 本文对nvdiffrast中的抗锯齿模块进行了较多修改，
 其中包括第\ref{chap:method}章中介绍的应对未知背景计算梯度的方法，
-第\ref{sec:method_discuss}节中介绍的应对nvdiffrast梯度稀疏的缓解措施，
+第\ref{sec:method_nvdiffrast}节中介绍的应对nvdiffrast梯度稀疏的缓解措施，
 以及第\ref{sec:recon_sdf}节中介绍的使用SDF贴图对边缘分类的方法。
 作为本章最有特色的部分，在无需人脸关键点监督的情况下，本文借助抗锯齿模块提供的可见性梯度实现了人脸模型和具有未知背景的照片的精确对齐。
 
@@ -415,7 +415,7 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
     \mathcal{L} = \mathcal{L}_\mathrm{n} + \mathcal{L}_\mathrm{reg}
     \text{，}
 \end{equation}
-其中$\mathcal{L}_\mathrm{n}$是第\ref{chap:method}章中介绍的面积归一化的像素损失，并使用了第\ref{sec:method_discuss}节中介绍的实现方法。
+其中$\mathcal{L}_\mathrm{n}$是第\ref{chap:method}章中介绍的面积归一化的像素损失，并使用了第\ref{sec:method_nvdiffrast}节中介绍的实现方法。
 本章中不仅使用了第\ref{chap:method}章中主要介绍的可见性梯度，
 还根据本节中介绍的渲染流程计算了着色的梯度。
 $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：

@@ -1,20 +1,14 @@
 \chapter{适应未知背景的可微分逆渲染方法}
 \label{chap:method}
 
-在重建3D人脸几何形状时，现有方法未能充分利用照片中的边缘信息。
-它们大多依赖2D人脸关键点识别的结果来监督几何形状的优化，但这需要额外的标注步骤，且会引入累计误差，稀疏的关键点信息也会限制优化的精度。
-也有方法利用传统的多目立体方法来确定几何形状，但这限制了其必须使用多视角照片作为输入。
-
-很多3D人脸重建的现有方法也运用了可微分渲染技术，
-这些方法都只针对每个像素的着色结果分别计算了梯度，但并没有考虑到由于模型间相互遮挡而导致的可见性梯度。
-而该梯度正是所有梯度中的主要分量，对模型与照片中边缘的精确对齐有着重要作用。
-另一方面，在通用的可微分渲染的相关研究中，
-已经有很多方法可以高效地估计可见性梯度。
-然而，计算正确的可见性梯度需要同时具有前景和背景的模型，但在非受限环境照片中，由于背景多样，很难得到准确的背景模型。
-
-针对该问题，本章提出一种适应未知背景的可微分渲染方法，能够利用可见性梯度来优化模型，使其与照片中边缘精确对齐。
-具体来说，本章提出了一种面积归一化的像素损失函数，通过收缩和扩展两项梯度详尽地说明了其性质，并介绍了一种高效实现的方式。
-本章也通过实验证明了该损失函数确实能够使模型与照片中边缘精确对齐，同时无需背景模型，也不依赖关键点等额外监督信息。
+本章主要介绍了一种适应未知背景的，基于可微分渲染的逆渲染方法。
+该方法主要包含一种面积归一化的像素损失函数，及其高效实现的方式。
+非受限环境拍摄的照片在拍摄时通常没有条件准确建模或采集真实的背景。
+对此，本章首先介绍了现有方法在在这类应用场景中的缺陷，然后提出了一种适应未知背景的可微分渲染方法。
+本章分析了所提出的损失函数的作用机理，并基于nvdiffrast的抗锯齿模块提出了一种该方法的高效实现方式。
+该方法能够利用可见性梯度来优化模型，使其与照片中边缘精确对齐。
+最后，本章通过恢复立方体姿态以及3D人脸重建的实验验证了该方法的有效性，
+说明本章方法确实能够使模型与照片中边缘精确对齐，同时无需背景模型，也不依赖关键点等额外监督信息。
 
 \section{研究动机}
 
@@ -24,6 +18,53 @@
 而在通用可微分渲染的研究中，已经有很多方法可以高效地估计可见性梯度，但它们仍无法处理未知背景。
 现有一个方法\citep{SchonbornEFV15}以概率推理的方式来重建人脸，它考虑了未知背景的情况，但其优化方式并非基于梯度，很难与其他方法结合。
 
+\subsection{通用可微分渲染无法处理未知背景}
+
+可微分渲染技术旨在准确地估计渲染的图像关于其渲染参数的梯度。
+这些梯度中最难以估计的是由于模型的不同部分间相互遮挡而导致的可见性梯度。
+而这项梯度是所有梯度中的主要分量，对模型与照片中边缘的精确对齐有着重要作用。
+虽然困难，但是在通用可微分渲染的相关研究中，已经有很多方法可以高效地估计可见性梯度。
+
+然而现有方法仍无法处理未知背景：
+现有方法对整张图片计算损失函数和估计梯度，即不区分前景和背景部分。
+其中前景和背景间相互遮挡而产生的可见性梯度则需要渲染图像中同时包含较为准确的前景和背景才能得到。
+但是，在基于非受限环境照片的人脸重建任务中，我们通常只有前景（即人脸）的3D模型，而没有背景的模型，因而无法渲染背景部分。
+本章将提出一种不依赖背景渲染的可见性梯度的利用方法。
+
+\subsection{现有人脸重建方法未利用可见性梯度}
+
+现有的非受限环境人脸重建方法也都面临这个问题。
+在使用了可微分渲染技术的方法中，它们均直接没有考虑人脸与背景间的可见性梯度。
+为了在缺少这项梯度的情况下获得精确的人脸几何形状，他们通常会：
+\begin{itemize}
+\item 使用多目立体等其他手段事先确定高精度的人脸几何形状，并在逆渲染优化过程中使几何形状保持不变，仅在逆渲染过程中优化材质相关参数\citep{RiviereGBGB20}。
+这限制了其可能的应用场景，这些方法必须使用多帧照片作为输入。
+对人脸来说，拍摄多帧照片时人的姿态表情需要保持不变，这也提升了数据采集难度。
+\item 使用2D人脸关键点提供监督信号\citep{deep3d}。
+这种方案最大的问题是：部分关键点（例如脸颊上的）在人脸上的位置定义是不明确的，这导致监督信号中难免引入噪声。
+虽然已有工作\citep{qu122015adaptive}通过“边缘关键点”的定义试图改善这种情况，但仍无法完全消除不明确的定义。
+此外，在重建过程中引入人脸关键点检测模块也会增加算法的复杂度，并使重建精度受关键点检测精度的影响。
+\end{itemize}
+除人脸重建外，通用的3D重建研究也面临同样的问题，例如\citet{nvdiffrec}使用额外的图像分割结果作为监督。
+但是，如果能够直接利用可见性梯度，可大大简化算法的流程，同时也能避免在前序步骤中引入额外的误差。
+
+\subsection{现有考虑未知背景的方法适用范围有限}
+
+\citet{SchonbornEFV15}讨论了在逆渲染的优化过程中对未知背景的处理。
+但该方法是概率推理方法，其优化过程是不断在后验分布中采样，寻找最大似然的解。
+该优化过程是离散的，其中并未使用到梯度，因此难以和神经网络等方法中基于梯度下降的优化方法相结合。
+该作者提出的方法，例如每个像素假定有$p=0.8$的概率属于背景，也难以和常见的损失函数相结合。
+
+而本章将提出一种新的损失函数，该函数能直接应用于图\ref{fig:inv_rendering}中损失函数的位置，
+并能与现有各种有计算可见性梯度能力的可微分渲染方法结合，以梯度下降的方式监督任意模型的优化过程。
+
+\section{逆渲染总体流程}
+
+本章方法是对可微分逆渲染流程的改进。
+渲染指的是从渲染参数合成渲染图像的过程。
+渲染参数的范围很广，以传统的基于3D网格的渲染为例，渲染参数可包括参数化的3D模型，如由三角形构成的3D网格的顶点坐标和其他属性，纹理贴图等，以及其他渲染参数，如相机参数，环境光照等。
+而可微分渲染旨在计算渲染图像关于渲染参数的梯度。
+该项技术通常应用于逆渲染的优化过程中，
 \begin{figure}
 \centering
 \begin{tikzpicture}[
@@ -70,24 +111,20 @@
 \caption{基于可微分渲染的逆渲染基本流程}
 \label{fig:inv_rendering}
 \end{figure}
-
-本章方法是对可微分逆渲染流程的改进。
-渲染指的是从渲染参数合成渲染图像的过程。
-渲染参数的范围很广，以传统的基于3D网格的渲染为例，渲染参数可包括参数化的3D模型，如由三角形构成的3D网格的顶点坐标和其他属性，纹理贴图等，以及其他渲染参数，如相机参数，环境光照等。
-而可微分渲染旨在计算渲染图像关于渲染参数的梯度。
-该项技术通常应用于逆渲染的优化过程中，
 如图\ref{fig:inv_rendering}是基于可微分渲染的逆渲染基本流程。
 逆渲染过程通过计算渲染图像与目标照片之间的特定损失函数，并计算模型参数关于损失函数的梯度，以期利用基于梯度的方法优化输入参数，从而改善渲染效果，使之更加接近现实。
 该思路在3D人脸重建的相关任务中已有较广泛的应用。
 在3D人脸重建任务中，通常人脸3D模型是由另一个编码了人脸先验知识的模型预测而来，例如3DMM和/或神经网络。
 基于梯度的优化方法也使得逆渲染方法可以方便地与神经网络结合，从而实现端到端的参数优化。
 
-\subsection{通用可微分渲染无法处理未知背景}
+\section{可微分渲染}
 
-然而现有通用可微分渲染方法仍无法处理未知背景：
-现有方法对整张图片计算损失函数和估计梯度，即不区分前景和背景部分。
-其中前景和背景间相互遮挡而产生的可见性梯度则需要渲染图像中同时包含较为准确的前景和背景才能得到。
-但是，在基于非受限环境照片的人脸重建任务中，我们通常只有前景（即人脸）的3D模型，而没有背景的模型，因而无法渲染背景部分。
+在逆渲染优化过程中，可微分渲染是连接定义于3D空间的模型参数和2D渲染图像的桥梁。
+其具体实现方式多种多样，本文主要讨论基于光栅化渲染方式的可微分渲染。
+为使得渲染结果成为关于3D模型空间位置的连续函数，可微分渲染方法通常将处于模型间相互遮挡的边缘的像素渲染为前景与背景的混合色。
+然而计算这样的混合需要同时对前景和背景建立可渲染的模型，
+但在基于非受限环境照片的3D人脸重建任务中，对背景的建模通常较为困难。
+
 此时，现有方法选择忽略模型间相互遮挡产生的可见性梯度，而这会造成模型与照片的对齐不准确，如图\ref{fig:problem_a}所示。
 另一方面，若对背景进行很粗糙的建模，例如假设为全黑，则错误的梯度会引导前景模型拟合背景，最终虽然能得到更低的损失函数，但模型的几何形状却不能收敛到期望的位置，如图\ref{fig:problem_b}所示。
 
@@ -156,33 +193,6 @@
 
 然而，在实际非受限环境照片的人脸重建的任务中，背景可能是很复杂且难以建模的。
 本章将探讨在这种情况下，如何利用可见性梯度以指导前景模型与目标照片中的边缘对齐。
-
-\subsection{现有人脸重建方法未利用可见性梯度}
-
-现有的非受限环境人脸重建方法也都面临这个问题。
-在使用了可微分渲染技术的方法中，它们均直接没有考虑人脸与背景间的可见性梯度。
-为了在缺少这项梯度的情况下获得精确的人脸几何形状，他们通常会：
-\begin{itemize}
-\item 使用多目立体等其他手段事先确定高精度的人脸几何形状，并在逆渲染优化过程中使几何形状保持不变，仅在逆渲染过程中优化材质相关参数\citep{RiviereGBGB20}。
-这限制了其可能的应用场景，这些方法必须使用多帧照片作为输入。
-对人脸来说，拍摄多帧照片时人的姿态表情需要保持不变，这也提升了数据采集难度。
-\item 使用2D人脸关键点提供监督信号\citep{deep3d}。
-这种方案最大的问题是：部分关键点（例如脸颊上的）在人脸上的位置定义是不明确的，这导致监督信号中难免引入噪声。
-虽然已有工作\citep{qu122015adaptive}通过“边缘关键点”的定义试图改善这种情况，但仍无法完全消除不明确的定义。
-此外，在重建过程中引入人脸关键点检测模块也会增加算法的复杂度，并使重建精度受关键点检测精度的影响。
-\end{itemize}
-除人脸重建外，通用的3D重建研究也面临同样的问题，例如\citet{nvdiffrec}使用额外的图像分割结果作为监督。
-但是，如果能够直接利用可见性梯度，可大大简化算法的流程，同时也能避免在前序步骤中引入额外的误差。
-
-\subsection{现有考虑未知背景的方法适用范围有限}
-
-\citet{SchonbornEFV15}讨论了在逆渲染的优化过程中对未知背景的处理。
-但该方法是概率推理方法，其优化过程是不断在后验分布中采样，寻找最大似然的解。
-该优化过程是离散的，其中并未使用到梯度，因此难以和神经网络等方法中基于梯度下降的优化方法相结合。
-该作者提出的方法，例如每个像素假定有$p=0.8$的概率属于背景，也难以和常见的损失函数相结合。
-
-而本章将提出一种新的损失函数，该函数能直接应用于图\ref{fig:inv_rendering}中损失函数的位置，
-并能与现有各种有计算可见性梯度能力的可微分渲染方法结合，以梯度下降的方式监督任意模型的优化过程。
 
 \section{面积归一化的像素损失函数}
 
@@ -263,10 +273,28 @@
 由于景深浅，照片中物体边缘有较大模糊；
 或者在部分位置碰巧前景与背景颜色相似等。
 
-\section{收缩和扩展梯度分析}
+\paragraph{L1距离的必要性}
+本文中所有的讨论都是基于渲染图像与目标图像的L1距离的，之所以不使用L2或其他距离，主要是基于以下原因：
+\begin{itemize}
+\item 直接的原因是公式\eqref{eq:impl_nvdiffrast}中$\sigma$和求距离的运算的交换需要L1距离。
+\item 根本的原因是若将图像看作二维连续函数的离散化，则离散化的操作应尽可能小地对优化造成影响。
+使用L1距离才能实现与像素离散化的方式无关的可见性梯度。
+如图\ref{fig:problem}c所示，虽然该例子中图像分辨率很低，但其损失函数的梯度仍然是非常平滑的，并未受到像素离散化的影响。
+图\ref{fig:l2_loss}展示了另一个使用L2损失的玩具实验的效果。
+可见其梯度在像素边缘处出现了明显的阶跃，这是由像素离散化造成的。甚至在像素边缘处得到了为0的梯度，这显然是不合理且不利于优化的。
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \import{build/figures/}{l2_loss.pgf}
+    \caption[L2损失与像素离散化相关]{L2损失与像素离散化相关，各图含义参见图\ref{fig:problem}。}
+    \label{fig:l2_loss}
+\end{figure}
+
+\section{作用机理分析和高效等效公式}
 
 本节将介绍如何将上一节提出的，定义在连续空间的损失函数应用于由离散的像素组成的图像上，
-并分析了其梯度，提出了该损失函数更高效的等效实现。
+并分析了其梯度，提出了该损失函数更高效的等效公式。
 
 为了使渲染图像$\hat{\mathcal{I}}$成为关于其渲染参数的的连续函数，本文将使用离散像素表示的图像渲染的过程定义为：
 \begin{equation}
@@ -281,7 +309,7 @@ $\mathbf{c}$的值取决于所选择的着色模型，因此在本章中不考�
 自然地，对于处在前景模型在图像上投影内部的像素$\sigma=1$，而对于模型外部的像素$\sigma=0$，
 仅当像素位于模型边界上时，$\frac{\partial\sigma}{\partial\theta}$才不为0，因此处于模型边界上的覆盖率$\sigma$是本节主要考虑的对象。
 需要注意的是，准确地求出每个像素的$\sigma$较为复杂，现有很多通用可微分渲染方法都在这方面做出了不小的努力。
-后文第\ref{sec:method_discuss}节将基于现有通用可微分渲染方法，介绍一种基于nvdiffrast的高效实现方式。
+后文第\ref{sec:method_nvdiffrast}节将基于现有通用可微分渲染方法，介绍一种基于nvdiffrast的高效实现方式。
 
 基于该定义，我们可以将面积归一化的像素损失函数的定义推广至由离散的像素表示的图像中：
 \begin{equation}
@@ -348,6 +376,7 @@ $\sg$为梯度停止操作符，表示在求导时该项视为常数。
 该函数的目的是在逆渲染的优化中，产生额外的收缩与扩展两项梯度，从而促进模型对齐到与未知的背景的边缘。
 
 \section{基于nvdiffrast的高效实现}
+\label{sec:method_nvdiffrast}
 
 \begin{figure}[ht]
     \centering
@@ -423,15 +452,149 @@ nvdiffrast的稀疏覆盖率检测有时会导致整体梯度估计的偏差过�
 因此可能还需要手动将相关梯度乘以一个放大系数进行补偿。
 下文将对该问题进一步讨论，并提出另一种缓解措施。
 
-\subsection{性能分析}
+\paragraph{性能分析}
 
-nvdiffrast的特点正是以渲染和反向传播性能较高。
+nvdiffrast的特点正是正向渲染和反向传播性能较高。
 而本章所提出的基于它的实现也继承了这一特点，本章在nvdiffrast之上几乎没有增加额外的性能开销。
 本文通过将前景模型渲染于目标图像之上的方式实现收缩项梯度，其运行时开销和正常渲染相同。
 而扩展项所使用的标记利用了现有位域中的空间，因此不会增加额外的内存开销。
 在计算量上，除了在优化开始前需要计算一次前景模型的覆盖面积$|\mathcal{A}|$外，
 其余每次迭代每张图片所需的额外计算仅有扩展项梯度的系数$e$，以及边缘像素的一次额外梯度累加。
 这些计算相比于模型渲染过程来说可以忽略不计。
+
+\paragraph{nvdiffrast可见性梯度稀疏的缓解}
+前文提到，nvdiffrast的抗锯齿模块计算的覆盖率是稀疏的，即它会错过部分$\sigma\in(0,1)$的像素。
+该问题的原因在于其检测渲染图像中不连续性（即包含前景和背景相互遮挡）的方式。
+该模块判定相邻两个像素不连续当且仅当：
+\begin{enumerate*}
+\item 两个像素渲染自不同的三角形；
+\item 其中来自前景的（深度较浅的）三角形在相机视角中处于物体边缘。
+\end{enumerate*}
+其中，处于边缘的判定方法为：来自前景的三角形满足以下条件之一：
+\begin{enumerate*}
+\item 在背景方向上无与其相邻的三角形；
+\item 在背景方向上与其相邻的三角形朝向相机背面。
+\end{enumerate*}
+然而，真正处于边缘的三角形可能并未被渲染图像的任何一个像素采样到。
+处于边缘的三角形被采样到的概率正比于其在渲染图像上的投影面积。
+但为了提升精度而使用更高密度的网格会导致每个三角形面积的下降；
+更雪上加霜的是，位于边缘的三角形的法向通常与相机方向夹角很大，导致其在渲染图像上的投影面积更小。
+最终导致即使使用很高的分辨率也无法实现令人满意的采样概率。
+
+为缓解该问题，本文提出放松处于边缘的判定条件，添加一条：背景未被任何三角形覆盖。
+在该条件下即可保证与未知背景交界的所有边缘均被检测到。
+但付出的代价是部分梯度不能正确地传递到真正处于边缘的顶点上，
+而是被传递到与边缘相近的被采样到的三角形的顶点上。
+但是在完整的优化问题中通常都具有鼓励模型局部光滑的正则项，这些梯度的影响最终将被较为均匀地分布到更大的区域上，因此这些偏差应该不会造成太大的影响。
+图\ref{fig:vis_grad}展示了一些具体的例子。
+
+此外，该方法只能缓解模型与未知背景间的不连续性判定，而对模型自身不同部分的遮挡无能为力。
+这会导致内部的可见性梯度偏小，从而导致整体梯度估计发生偏差。
+其具体影响需根据实际应用进一步分析。
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.33\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
+            \draw [help lines] (0,0) grid [step=2cm] (4,2);
+            \draw[red, name path=H] (1,1) -- (3,1);
+            \filldraw (1,1) circle (1pt) node [above] {A}
+                      (3,1) circle (1pt) node [above] {B};
+
+            \coordinate [label=right:p] (p) at (1.2,2.2);
+            \coordinate [label=right:q] (q) at (2,-0.3);
+            \coordinate (r) at (-0.5,1);
+
+            \draw (p) -- (r) -- (q);
+            \draw [green!30!black, name path=T, thick] (p) -- (q);
+            \path [name intersections={of=H and T,by=I}];
+
+            \draw[fill=green] (p) circle (2pt);
+            \draw[fill=green] (q) circle (2pt);
+            \draw[fill] (I) circle (1pt);
+
+            \begin{pgfonlayer}{background}
+                \fill[green!50] (p) -- (1.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2, -0.5) -- (q);
+                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
+            \end{pgfonlayer}
+        \end{tikzpicture}
+        \caption{正常检测到的边缘}
+    \end{subfigure}%
+    \begin{subfigure}{0.33\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
+            \draw [help lines] (0,0) grid [step=2cm] (4,2);
+            \draw[red, name path=H] (1,1) -- (3,1);
+            \filldraw (1,1) circle (1pt) node [above] {A}
+                      (3,1) circle (1pt) node [above] {B};
+
+            \coordinate [label=above:p] (p) at (1.2,2.2);
+            \coordinate [label=below:q] (q) at (2,-0.3);
+            \coordinate (r) at (-0.5,1);
+            \coordinate (s) at (2.2,2.2);
+            \coordinate (t) at (2.6,-0.3);
+
+            \draw (p) -- (r) -- (q);
+            \draw (s) -- (t) -- (q) -- cycle;
+            \draw (s) -- (p);
+            \draw [green!30!black, name path=T, thick] (p) -- (q);
+            \path [name intersections={of=H and T,by=I}];
+
+            \draw[fill=red] (p) circle (2pt);
+            \draw[fill=red] (q) circle (2pt);
+            \draw[fill=gray!50] (s) circle (2pt);
+            \draw[fill=gray!50] (t) circle (2pt);
+            \draw[fill] (I) circle (1pt);
+
+            \begin{pgfonlayer}{background}
+                \fill[green!50] (s) -- (2.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2.6, -0.5) -- (t);
+                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
+            \end{pgfonlayer}
+        \end{tikzpicture}
+        \caption{缓解情况1}
+    \end{subfigure}%
+    \begin{subfigure}{0.33\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
+            \draw [help lines] (0,0) grid [step=2cm] (4,2);
+            \draw[red, name path=H] (1,1) -- (3,1);
+            \filldraw (1,1) circle (1pt) node [above] {A}
+                      (3,1) circle (1pt) node [above] {B};
+
+            \coordinate [label=above:p] (p) at (0.6,2.2);
+            \coordinate [label=right:q] (q) at (2.2,-0.3);
+            \coordinate (r) at (0.5,-0.2);
+            \coordinate (s) at (2.2,2.2);
+
+            \draw (p) -- (r) -- (q);
+            \draw (q) -- (s) -- (p);
+            \draw [green!30!black, name path=T, thick] (p) -- (q);
+            \path [name intersections={of=H and T,by=I}];
+
+            \draw[fill=red] (p) circle (2pt);
+            \draw[fill=green] (q) circle (2pt);
+            \draw[fill=gray!50] (s) circle (2pt);
+            \draw[fill] (I) circle (1pt);
+
+            \begin{pgfonlayer}{background}
+                \fill[green!50] (s) -- (2.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2.2, -0.5) -- (q);
+                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
+            \end{pgfonlayer}
+        \end{tikzpicture}
+        \caption{缓解情况2}
+    \end{subfigure}
+    \caption[nvdiffrast可见性梯度稀疏的原因及其缓解方法]{nvdiffrast可见性梯度稀疏的原因及其缓解方法。
+    (a)展示了可正常检测到可见性梯度的情况，即A像素的采样点正好落在处于边缘的三角形上。其中绿色顶点表示梯度正确传递的顶点。
+    (b)、(c)展示了两种常见的检测失败的情况，灰色顶点表示本应获得可见性梯度却未获得的顶点。
+    (b)情况常见于脸颊与背景间，相机视线与表面法线夹角大，每个三角形的投影面积被大幅压缩，导致被采样到的概率减小。
+    (c)情况常见于模型被裁剪的边缘，部分三角形与模型边缘仅有一个点连接，这些三角形有较高概率被A像素采样，却不被识别为处于边缘。
+    本文提出的方法能在B像素采样到背景时，通过将本应传给灰色顶点的可见性梯度转而传递给红色像素，从而缓解该问题。}
+    \label{fig:vis_grad}
+\end{figure}
 
 \section{实验结果}
 
@@ -574,12 +737,13 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 在该实验中各种方法的结果相差不大，这是因为初始化已经较为准确，且所有方法的优化空间均受到3DMM模型的限制。
 第\ref{chap:recon}章的实验将展示在更高的自由度下，本章方法在边缘对齐方面更大的优势。
 \begin{figure}
+\centering
 \begin{tikzpicture}[
     node distance=0pt and 0pt,
     image/.style={inner sep=0pt, outer sep=0pt},
     align result/.style={image, opacity=0.6, minimum height=1in},
 ]
-    \node (a) [image] {\includegraphics[height=1.28in]{figures/face_opt/target_hs}};
+    \node (a) [image] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/target_hs}};
     \node (b) [image,right=of a] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/initial}};
     \node (c) [image,right=of b] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/normal/final}};
     \node (d) [image,right=of c] {\includegraphics[height=1.28in,trim={56 0 56 0},clip]{figures/face_opt/no_aa/final}};
@@ -636,169 +800,6 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 然而，该方法直接应用到人脸时有时会受到人脸模型人工裁剪的边缘的影响而无法获得理想的效果。
 第\ref{chap:recon}章中将介绍本文如何解决该问题，并介绍将本章方法应用到人脸重建的更多实验。
 
-\section{讨论}
-\label{sec:method_discuss}
-
-\paragraph{L1距离的必要性}
-本文中所有的讨论都是基于渲染图像与目标图像的L1距离的，之所以不使用L2或其他距离，主要是基于以下原因：
-\begin{itemize}
-\item 直接的原因是公式\eqref{eq:impl_nvdiffrast}中$\sigma$和求距离的运算的交换需要L1距离。
-\item 根本的原因是若将图像看作二维连续函数的离散化，则离散化的操作应尽可能小地对优化造成影响。
-使用L1距离才能实现与像素离散化的方式无关的可见性梯度。
-如图\ref{fig:problem}c所示，虽然该例子中图像分辨率很低，但其损失函数的梯度仍然是非常平滑的，并未受到像素离散化的影响。
-图\ref{fig:l2_loss}展示了另一个使用L2损失的玩具实验的效果。
-可见其梯度在像素边缘处出现了明显的阶跃，这是由像素离散化造成的。甚至在像素边缘处得到了为0的梯度，这显然是不合理且不利于优化的。
-\end{itemize}
-
-\begin{figure}
-    \centering
-    \import{build/figures/}{l2_loss.pgf}
-    \caption[L2损失与像素离散化相关]{L2损失与像素离散化相关，各图含义参见图\ref{fig:problem}。}
-    \label{fig:l2_loss}
-\end{figure}
-
-\paragraph{nvdiffrast可见性梯度稀疏的缓解}
-前文提到，nvdiffrast的抗锯齿模块计算的覆盖率是稀疏的，即它会错过部分$\sigma\in(0,1)$的像素。
-该问题的原因在于其检测渲染图像中不连续性（即包含前景和背景相互遮挡）的方式。
-该模块判定相邻两个像素不连续当且仅当：
-\begin{enumerate*}
-\item 两个像素渲染自不同的三角形；
-\item 其中来自前景的（深度较浅的）三角形在相机视角中处于物体边缘。
-\end{enumerate*}
-其中，处于边缘的判定方法为：来自前景的三角形满足以下条件之一：
-\begin{enumerate*}
-\item 在背景方向上无与其相邻的三角形；
-\item 在背景方向上与其相邻的三角形朝向相机背面。
-\end{enumerate*}
-然而，真正处于边缘的三角形可能并未被渲染图像的任何一个像素采样到。
-处于边缘的三角形被采样到的概率正比于其在渲染图像上的投影面积。
-但为了提升精度而使用更高密度的网格会导致每个三角形面积的下降；
-更雪上加霜的是，位于边缘的三角形的法向通常与相机方向夹角很大，导致其在渲染图像上的投影面积更小。
-最终导致即使使用很高的分辨率也无法实现令人满意的采样概率。
-
-为缓解该问题，本文提出放松处于边缘的判定条件，添加一条：背景未被任何三角形覆盖。
-在该条件下即可保证与未知背景交界的所有边缘均被检测到。
-但付出的代价是部分梯度不能正确地传递到真正处于边缘的顶点上，
-而是被传递到与边缘相近的被采样到的三角形的顶点上。
-但是在完整的优化问题中通常都具有鼓励模型局部光滑的正则项，这些梯度的影响最终将被较为均匀地分布到更大的区域上，因此这些偏差应该不会造成太大的影响。
-图\ref{fig:vis_grad}展示了一些具体的例子。
-
-此外，该方法只能缓解模型与未知背景间的不连续性判定，而对模型自身不同部分的遮挡无能为力。
-这会导致内部的可见性梯度偏小，从而导致整体梯度估计发生偏差。
-其具体影响需根据实际应用进一步分析。
-
-\begin{figure}
-    \centering
-    \begin{subfigure}{0.33\textwidth}
-        \centering
-        \begin{tikzpicture}
-            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
-            \draw [help lines] (0,0) grid [step=2cm] (4,2);
-            \draw[red, name path=H] (1,1) -- (3,1);
-            \filldraw (1,1) circle (1pt) node [above] {A}
-                      (3,1) circle (1pt) node [above] {B};
-
-            \coordinate [label=right:p] (p) at (1.2,2.2);
-            \coordinate [label=right:q] (q) at (2,-0.3);
-            \coordinate (r) at (-0.5,1);
-
-            \draw (p) -- (r) -- (q);
-            \draw [green!30!black, name path=T, thick] (p) -- (q);
-            \path [name intersections={of=H and T,by=I}];
-
-            \draw[fill=green] (p) circle (2pt);
-            \draw[fill=green] (q) circle (2pt);
-            \draw[fill] (I) circle (1pt);
-
-            \begin{pgfonlayer}{background}
-                \fill[green!50] (p) -- (1.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2, -0.5) -- (q);
-                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
-            \end{pgfonlayer}
-        \end{tikzpicture}
-        \caption{正常检测到的边缘}
-    \end{subfigure}%
-    \begin{subfigure}{0.33\textwidth}
-        \centering
-        \begin{tikzpicture}
-            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
-            \draw [help lines] (0,0) grid [step=2cm] (4,2);
-            \draw[red, name path=H] (1,1) -- (3,1);
-            \filldraw (1,1) circle (1pt) node [above] {A}
-                      (3,1) circle (1pt) node [above] {B};
-
-            \coordinate [label=above:p] (p) at (1.2,2.2);
-            \coordinate [label=below:q] (q) at (2,-0.3);
-            \coordinate (r) at (-0.5,1);
-            \coordinate (s) at (2.2,2.2);
-            \coordinate (t) at (2.6,-0.3);
-
-            \draw (p) -- (r) -- (q);
-            \draw (s) -- (t) -- (q) -- cycle;
-            \draw (s) -- (p);
-            \draw [green!30!black, name path=T, thick] (p) -- (q);
-            \path [name intersections={of=H and T,by=I}];
-
-            \draw[fill=red] (p) circle (2pt);
-            \draw[fill=red] (q) circle (2pt);
-            \draw[fill=gray!50] (s) circle (2pt);
-            \draw[fill=gray!50] (t) circle (2pt);
-            \draw[fill] (I) circle (1pt);
-
-            \begin{pgfonlayer}{background}
-                \fill[green!50] (s) -- (2.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2.6, -0.5) -- (t);
-                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
-            \end{pgfonlayer}
-        \end{tikzpicture}
-        \caption{缓解情况1}
-    \end{subfigure}%
-    \begin{subfigure}{0.33\textwidth}
-        \centering
-        \begin{tikzpicture}
-            \path[use as bounding box] (-0.5,-0.5) rectangle (4,2.5);
-            \draw [help lines] (0,0) grid [step=2cm] (4,2);
-            \draw[red, name path=H] (1,1) -- (3,1);
-            \filldraw (1,1) circle (1pt) node [above] {A}
-                      (3,1) circle (1pt) node [above] {B};
-
-            \coordinate [label=above:p] (p) at (0.6,2.2);
-            \coordinate [label=right:q] (q) at (2.2,-0.3);
-            \coordinate (r) at (0.5,-0.2);
-            \coordinate (s) at (2.2,2.2);
-
-            \draw (p) -- (r) -- (q);
-            \draw (q) -- (s) -- (p);
-            \draw [green!30!black, name path=T, thick] (p) -- (q);
-            \path [name intersections={of=H and T,by=I}];
-
-            \draw[fill=red] (p) circle (2pt);
-            \draw[fill=green] (q) circle (2pt);
-            \draw[fill=gray!50] (s) circle (2pt);
-            \draw[fill] (I) circle (1pt);
-
-            \begin{pgfonlayer}{background}
-                \fill[green!50] (s) -- (2.1, 2.5) -- (-0.5,2.5) -- (-0.5,-0.3) --  (-0.5,-0.5) -- (2.2, -0.5) -- (q);
-                \fill[green!80!black] (p) -- (q) -- (r) -- cycle;
-            \end{pgfonlayer}
-        \end{tikzpicture}
-        \caption{缓解情况2}
-    \end{subfigure}
-    \caption[nvdiffrast可见性梯度稀疏的原因及其缓解方法]{nvdiffrast可见性梯度稀疏的原因及其缓解方法。
-    (a)展示了可正常检测到可见性梯度的情况，即A像素的采样点正好落在处于边缘的三角形上。其中绿色顶点表示梯度正确传递的顶点。
-    (b)、(c)展示了两种常见的检测失败的情况，灰色顶点表示本应获得可见性梯度却未获得的顶点。
-    (b)情况常见于脸颊与背景间，相机视线与表面法线夹角大，每个三角形的投影面积被大幅压缩，导致被采样到的概率减小。
-    (c)情况常见于模型被裁剪的边缘，部分三角形与模型边缘仅有一个点连接，这些三角形有较高概率被A像素采样，却不被识别为处于边缘。
-    本文提出的方法能在B像素采样到背景时，通过将本应传给灰色顶点的可见性梯度转而传递给红色像素，从而缓解该问题。}
-    \label{fig:vis_grad}
-\end{figure}
-
-\paragraph{局限性}
-
-虽然本章提出的方法能在一定程度上解决在未知背景时的逆渲染问题，但该方法仍然不如直接采集真实的背景图像，并对整张图片应用常规可微分渲染方法好。
-本章方法中的超参数$\alpha$的选择与模型拟合误差的分布有关，如果拟合误差在空间上分布非常不均匀，或前景与背景差别过小则可能无法找到合适的参数。
-此外，失焦造成的边缘模糊，以及碰巧背景颜色与人脸较为相近的情况下，本算法的对齐质量也会下降。
-
-因此，如采用三脚架等固定机位拍摄时，则应该尽量在拍摄的同时采集真实背景，即保持相机位置和拍摄参数不变，分别拍摄有人在画面中的和仅有背景的照片。
-
 \section{未来工作}
 
 本章方法充分利用了人脸模型和背景间的可见性梯度，但从另一个方面说，也依赖这些梯度的正确性。
@@ -823,6 +824,14 @@ nvdiffrast的特点正是以渲染和反向传播性能较高。
 例如基于redner\citep{redner}的光线追踪渲染时，可将收缩和扩展梯度集成于其边缘采样的过程中，正如与nvidiffrast中的抗锯齿模块的集成一样；
 基于NeRF\citep{nerf}的体渲染方案则可将积分后的密度处于某一范围内的部分视为边缘，并应用收缩和扩展梯度。
 这方面还有待进一步的研究。
+
+\paragraph{局限性}
+
+虽然本章提出的方法能在一定程度上解决在未知背景时的逆渲染问题，但该方法仍然不如直接采集真实的背景图像，并对整张图片应用常规可微分渲染方法好。
+本章方法中的超参数$\alpha$的选择与模型拟合误差的分布有关，如果拟合误差在空间上分布非常不均匀，或前景与背景差别过小则可能无法找到合适的参数。
+此外，失焦造成的边缘模糊，以及碰巧背景颜色与人脸较为相近的情况下，本算法的对齐质量也会下降。
+
+因此，如采用三脚架等固定机位拍摄时，则应该尽量在拍摄的同时采集真实背景，即保持相机位置和拍摄参数不变，分别拍摄有人在画面中的和仅有背景的照片。
 
 \section*{本章小结}
 
