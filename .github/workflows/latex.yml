@@ -15,7 +15,9 @@ jobs:
       - name: Compile LaTeX document
         env:
           OPENCV_IO_ENABLE_OPENEXR: "1"
-        run: make
+        run: |
+          git config --system --add safe.directory '*'
+          make
 
       - uses: actions/upload-artifact@v3
         with:
