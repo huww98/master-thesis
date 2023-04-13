@@ -107,7 +107,7 @@
 \DeclareRobustCommand*{\email}[1]{\gdef\@email{#1}}
 \DeclareRobustCommand*{\address}[1]{\gdef\@address{#1}}
 
-\DeclareRobustCommand*{\degree}[1]{\gdef\@degree{#1}}
+\DeclareRobustCommand*{\degree}[2]{\gdef\@degreeclass{#1}\gdef\@degree{#2}}
 \DeclareRobustCommand*{\major}[2]{\gdef\@major{#1}\gdef\@majordir{#2}}
 
 \DeclareRobustCommand*{\supervisor}[2]{\gdef\@supervisor{#1}\gdef\@supervisortitle{#2}}
@@ -138,12 +138,12 @@
 
             \zihao{3}
             \hbadness=10000 % suppress warning
-            \begin{tabular}{W{s}{6.5em} W{c}{6.5em}}
+            \begin{tabular}{W{s}{6.5em} W{c}{12em}}
                 \hideinblind{
                     作者姓名 & \@author\\
                     \cline{2-2}
                 }
-                学位类别 & \@degree\\
+                学位类别 & \@degreeclass\\
                 \cline{2-2}
                 \hideinblind{
                     指导教师 & \@supervisor~\@supervisortitle\\
