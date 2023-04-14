@@ -59,61 +59,68 @@
 \frontmatter
 \chapter{摘\texorpdfstring{\quad}{}要}
 
-3D人脸重建技术旨在从非受限环境拍摄的照片中恢复出人脸的3D模型，
-这些模型已被广泛应用于人脸识别、人脸表情捕捉、人脸跟踪、人脸动画合成等任务中。
-然而，基于少量非受限环境照片重建的模型还难以应用于需要直接渲染图像的游戏、影视等场景中，
-具体来说，现有的基于非受限环境照片的重建方法还存在如下问题：
-现有方法未能充分利用照片中的边缘信息，它们依赖2D人脸关键点识别、多目立体等方法以重建人脸的几何形状，这会引入额外的复杂性和累积误差。
+本文研究的3D人脸重建方法旨在从少量非受限环境拍摄的照片中恢复人脸的3D模型，
+这些方法在计算机视觉、图形学和虚拟现实等领域都有广泛的应用。
+其重建的模型已被广泛应用于人脸识别、人脸表情捕捉、人脸跟踪、人脸动画合成等任务中。
+然而，现有基于少量非受限环境照片的重建方法流程复杂且精度有限，
+尚难以直接应用于需要直接渲染图像的游戏、影视等场景中。
+具体而言，现有方法未能充分利用照片中的边缘信息，它们依赖2D人脸关键点识别、多目立体等方法以重建人脸的几何形状，这增加了额外的复杂性和累积误差。
+本文提出了一种基于可微渲染的新方法，旨在克服这些限制，显著降低了3D人脸重建流程的复杂度，提高了重建的精度。
 
 为解决非受限环境照片中边缘信息难以利用的问题，
 本文提出了一种基于可微分渲染的3D人脸重建算法。
-本文从理论上分析了无法对背景建模时的可见性梯度计算问题，
+本文从理论上分析了无法对背景准确建模时的可见性梯度计算问题，
 提出了一种面积归一化的像素损失函数。
 本文分析了该损失函数的作用机理，并与现有的通用可微分渲染研究中的可见性梯度计算方法相结合，高效实现了该损失函数。
 
-然而人脸只是整个人的一部分，当人脸模型从整个人上裁剪下来用于重建时，在人工裁剪的模型边缘会产生异常梯度。
+然而人脸只是整个人体模型的一部分，当人脸模型被裁剪下来用于重建时，在人工裁剪的模型边缘会产生异常梯度。
 为解决该问题，
 本文进一步提出了一种基于SDF贴图的方法对所有渲染图像中的边缘进行分类，从而消除这些异常梯度，
-最终使人脸3D模型能更精确地对齐到照片中的边缘，从而提高了重建的准确性和实用性。
+最终使人脸3D模型能合理保持原有拓扑结构，从而提高了重建的准确性和实用性。
 
 基于本文提出的这些方法，本文实现了一个基于逆渲染的完整自动化人脸重建流程。
 该流程利用现有神经网络方法进行初始化，并结合传统方法重建人脸纹理。
 其重建的人脸可在一定的视角、光照、表情变化下较为逼真的重新渲染。
 本文展示和评估了其重建效果。
 
-\keyword{关键词：} 可微分渲染；逆渲染；人脸重建
+\keyword{关键词：} 可微分渲染；逆渲染；SDF贴图；人脸重建
 
 \chapter{Abstract}
 
-3D face reconstruction aims to recover 3D models of faces from a small number of unconstrained photos,
-which have been widely applied to face recognition, face expression capturing, face tracking, face animation synthesis, etc.
-However, these models are still difficult to apply to scenes that require direct image rendering, such as games and movies.
-Specifically, the existing reconstruction methods still have the following problem:
-The existing methods do not fully utilize the edge information in the photos,
+This thesis focuses on 3D face reconstruction methods that aim to recover 3D models of faces from a limited number of unconstrained photos.
+These methods has a wide range of applications in various fields, including computer vision, graphics, and virtual reality.
+Despite their widespread applications in areas such as face recognition, face expression capturing, face tracking, face animation synthesis, etc.,
+current methods are complex and limited in accuracy.
+In particular, existing methods fall short when it comes to directly rendering images in applications such as games and movies.
+Specifically, the existing reconstruction methods do not fully utilize the edge information in the photos,
 instead, they rely on 2D face landmark detection, multi-view stereo, etc.\ to reconstruct the geometric shape of the face,
 which introduces additional complexity and cumulative error.
+This thesis proposes a new approach based on differentiable rendering,
+which promises to overcome these limitations and significantly reduce the complexity of the 3D face reconstruction pipeline,
+as well as improve the accuracy of the reconstruction.
 
-To address the difficulty of utilizing edge information in unconstrained photos,
-this paper proposes a 3D face reconstruction algorithm based on differentiable rendering.
-This paper analyzes the problem of computing visibility gradients in situations where the background cannot be modeled,
+To address the challenge of leveraging edge information in unconstrained photos,
+this thesis proposes a 3D face reconstruction algorithm based on differentiable rendering.
+This thesis analyzes the difficulty  of computing visibility gradients in situations where the background cannot be accurately modeled,
 and proposes an area-normalized pixel loss function.
-This paper analyzes the mechanism of this loss function,
-and combines it with the existing methods for computing visibility gradients in general differentiable rendering to implement it efficiently.
+This thesis analyzes the mechanism of this loss function,
+and integrate it with the existing methods for computing visibility gradients in general differentiable rendering,
+achieving an efficient implementation.
 
 However, the face model is only part of the whole human model.
 When the face model is cropped for reconstruction,
-there will be abnormal gradients at the artificial cut edges.
-To overcome this issue, this paper further proposes a method based on SDF maps to classify all edges in the rendered images,
+the artificial cut edges can produce abnormal gradients.
+To overcome this issue, this thesis further proposes a method based on SDF maps to classify all edges in the rendered images,
 which eliminates these abnormal gradients.
-The proposed method enhances the accuracy and practicality of the reconstruction
-by enabling the face 3D model to align more precisely with the edges in the photo.
+By ensuring that the reconstructed face model can reasonably preserves its original topology,
+the proposed method enhances the accuracy and practicality of the reconstruction
 
-Based on the proposed methods, This paper implements a complete automatic face reconstruction pipeline based on inverse rendering.
-It employs neural network methods for initialization and combines traditional methods to reconstruct the face texture.
+Based on the proposed methods, This thesis presents a fully automatic face reconstruction pipeline based on inverse rendering.
+The pipeline employs existing neural network methods for initialization and integrates traditional methods to reconstruct the face texture.
 The resulting reconstructed face can be realistically re-rendered under certain views, lighting, and expression changes.
-This paper presents and evaluates the reconstruction results.
+This thesis presents and evaluates the reconstruction results.
 
-\keyword{Keywords:} Differentiable rendering; Face reconstruction; Face scanning
+\keyword{Keywords:} Differentiable rendering; Face reconstruction; SDF maps; Face scanning
 
 \tableofcontents
 

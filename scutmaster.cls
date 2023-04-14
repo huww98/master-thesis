@@ -30,7 +30,7 @@
     chapter={
         format=\zihao{-2}\heiti\centering,
         beforeskip=1.0ex plus 1.0ex minus 0.1ex,
-        afterskip=1.0ex plus 0.5ex minus 0.1ex,
+        afterskip=1.65ex plus 0.5ex minus 0.1ex,
     },
     section={
         format=\zihao{-3}\heiti,
@@ -93,7 +93,7 @@
 
 \newcommand{\keyword}[1]{
     \vskip\baselineskip
-    {\noindent\heiti\bf #1}%
+    {\noindent\bf #1}%
 }
 
 \clubpenalty=2000
