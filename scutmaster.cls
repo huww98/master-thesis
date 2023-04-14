@@ -200,7 +200,7 @@
         \setlength\extrarowheight{1em}
         \songti\zihao{5}\noindent
         \begin{tabularx}{\textwidth}{XX}
-            作者姓名：\@author     & 指导教师姓名、职称: \@supervisor~\@supervisortitle\\
+            作者姓名：\@author     & 指导教师姓名、职称：\@supervisor~\@supervisortitle\\
             申请学位级别：\@degree & 学科专业名称：\@major \\
             研究方向：\@majordir  & \\
             论文提交日期：\@date      & 论文答辩日期：\dateform\\

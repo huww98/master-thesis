@@ -2,7 +2,7 @@
 \label{chap:related_work}
 
 本章主要介绍本课题的相关研究和实践工作，
-其中包括现有的基于少量非受限环境照片的高效3D人脸重建方法，
+其中包括现有的使用专业设备的高精度3D重建，和基于少量非受限环境照片的3D人脸重建方法，
 和可微分渲染以及它在人脸重建中的应用。
 
 \section{使用专业设备的高精度3D重建}
@@ -10,16 +10,16 @@
 这类方法力求通过模型来精确描述被采集对象的形状和材质，从而在重新渲染时表现出很高的逼真度。
 这些模型通常能从任意角度，在任意光照环境下重新渲染，以满足影视、游戏等领域的需要。
 
-\begin{figure}
+\begin{figure}[t]
 \centering
 \begin{subfigure}[b]{0.53\textwidth}
     \centering
-    \includegraphics[height=160pt]{figures/light_stage}
+    \includegraphics[height=148pt]{figures/light_stage}
     \caption{实际采集现场}
 \end{subfigure}%
 \begin{subfigure}[b]{0.47\textwidth}
     \centering
-    \includegraphics[height=160pt]{figures/emily_detail_1}
+    \includegraphics[height=148pt]{figures/emily_detail_1}
     \caption{重建的几何细节}
 \end{subfigure}
 \caption[Digital Emily 项目中的 Light Stage]{Digital Emily项目中的Light Stage\cite{DEP}}
@@ -28,7 +28,7 @@
 \paragraph{几何形状重建}
 几何形状是物体最基本的属性，即物体每个部分在空间中所处的位置。
 几何形状重建的基本方法是识别物体同一个部分在不同相机下的匹配关系，然后借助已知的相机参数，以及该部分在不同相机下的像素坐标，计算出该部分在3D空间中的坐标。
-这类方法称为多目立体(multi-view Stereo, MVS)。
+这类方法称为多目立体(multi-view stereo, MVS)。
 
 最初，\citet{PFM}通过在目标脸上画一些网格，从而允许手动建立格点间的匹配关系。
 \citet{ss_geo}对多个相机两两之间计算视差图，然后将多组视差图进行融合，并通过约束进一步排除误匹配点。
@@ -54,7 +54,7 @@ D3DFACS\citep{D3DFACS}数据集采用了3dMD的方案。
 例如NeRF\citep{nerf}也可建模并输出物体反射光线的颜色和强度，且可以建模反射随视角变化的变化，但无法建模与采集时不同的光照条件下的反射情况。
 MoRF\citep{MoRF}则通过输出传统着色所需的材质参数，而不是直接输出反射光线，从而能够适应任意新的光照环境。
 
-\section{基于非受限环境照片的高效3D人脸重建}
+\section{基于非受限环境照片的3D人脸重建}
 
 可见，虽然能逼真地重建人脸模型，上述这些方法都需要专用的设备和环境来采集数据，这大大限制了他们的应用场景。
 除上述这些成本不敏感而力求准确的方法外，还有一些方法则希望降低采集的设备成本和复杂度，从而推动3D人脸重建技术在更多领域的应用。
@@ -117,6 +117,7 @@ FLAME\citep{FLAME}在模型中加入了骨骼绑定来建模下巴和转头等�
 该方法仍需要人工指定一个较为准确的初始化。
 在其后续工作\citep{BlanzV03}中，作者引入了在照片中手工标注的人脸关键点作为额外监督信号。
 利用类似的方法，\citet{piotraschke2016automated}将同一个人的多张照片的重建结果组合起来，以获得单个更准确的模型；
+\citet{cai2020}利用了多视角图像，并通过光流和明暗关系恢复人脸细节；
 \citet{thies2016face2face}根据重建的模型，将表情在不同照片间迁移。
 一些方法提出了对关键点损失的改进。
 \citet{qu122015adaptive}将关键点分为内部和边缘两类，为解决边缘关键点在侧脸照片中定义不明确的问题，作者提出了一种自适应的边缘关键点选择方法。
