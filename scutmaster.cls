@@ -132,7 +132,7 @@
         \null\vfil
         \begin{center}
             \heiti
-            \includegraphics[width=0.8\textwidth]{figures/SCUT}\par
+            \includegraphics[width=0.77\textwidth]{figures/SCUT}\par
             \zihao{-0}专业学位硕士学位论文\par\vfill
             \zihao{2}\uline{\@title}\par\vfill
 
@@ -157,6 +157,7 @@
                 \cline{2-2}
             \end{tabular}
         \end{center}
+        \vspace{2cm}
         \vfil\null
     \end{titlepage}
 }
