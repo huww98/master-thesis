@@ -71,7 +71,7 @@
 本文提出了一种基于可微分渲染的3D人脸重建算法。
 本文从理论上分析了无法对背景准确建模时的可见性梯度计算问题，
 提出了一种面积归一化的像素损失函数。
-本文分析了该损失函数的作用机理，并与现有的通用可微分渲染研究中的可见性梯度计算方法相结合，高效实现了该损失函数。
+然后本文进一步分析了该损失函数的作用机理，并与现有的通用可微分渲染研究中的可见性梯度计算方法相结合，高效实现了该损失函数。
 
 然而人脸只是整个人体模型的一部分，当人脸模型被裁剪下来用于重建时，在人工裁剪的模型边缘会产生异常梯度。
 为解决该问题，
@@ -120,7 +120,7 @@ The pipeline employs existing neural network methods for initialization and inte
 The resulting reconstructed face can be realistically re-rendered under certain views, lighting, and expression changes.
 This thesis presents and evaluates the reconstruction results.
 
-\keyword{Keywords:} Differentiable rendering; Face reconstruction; SDF maps; Face scanning
+\keyword{Keywords:} Differentiable rendering; Inverse rendering; SDF maps; Face reconstruction
 
 \tableofcontents
 
