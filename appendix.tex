@@ -41,18 +41,10 @@
 \label{app:passive_sync}
 
 \begin{figure}
-    \begin{minipage}{0.52\textwidth}
-        \centering
-        \includegraphics{figures/passive_sync_pcb}
-        \captionof{figure}[被动控制器的PCB布局]{被动控制器的PCB布局。1:1尺寸比例}
-        \label{fig:passive_sync_pcb}
-    \end{minipage}\hfill%
-    \begin{minipage}{0.45\textwidth}
-        \centering
-        \includegraphics{figures/2.5mm}
-        \caption{用于焊接的2.5mm插头}
-        \label{fig:2.5mm}
-    \end{minipage}
+    \centering
+    \includegraphics{figures/2.5mm}
+    \caption{用于焊接的2.5mm插头}
+    \label{fig:2.5mm}
 \end{figure}
 用于快门线接口的2.5mm插头如图\ref{fig:2.5mm}所示。
 该插头的接触部分呈旋转对称的柱体，柱体不同高度上分布有3个独立的接触区域，分别对应对焦控制、快门控制和地线，
@@ -64,6 +56,12 @@
     \includegraphics[width=\textwidth]{figures/passive_sync_schematic}
     \caption{被动控制器的电路原理图}
     \label{fig:passive_sync_schematic}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics{figures/passive_sync_pcb}
+    \caption[被动控制器的PCB布局]{被动控制器的PCB布局。1:1尺寸比例}
+    \label{fig:passive_sync_pcb}
 \end{figure}
 每个被动控制器的电路原理图如图\ref{fig:passive_sync_schematic}所示，
 该电路实现为一块简单的单面布线板，其布局如图\ref{fig:passive_sync_pcb}所示。
@@ -190,8 +188,8 @@ OLED显示控制模块负责调用单片机的硬件I2C接口与OLED显示器通
 本方案中使用的相机并不能自行校准时间戳，在一个月的时间内，之前手动校准的时间戳之间就会产生数分钟的偏差。
 为避免反复手动调整相机时钟设置，本工具支持在显示时自动添加偏移。
 相机间时间戳的偏移量存储于单独的文件中，用户可以复用之前拍摄时的数据，以避免从头开始校准，降低校准的难度。
-在提取CR3格式的照片元数据时，本工具根据网上公开的CR3格式反向工程文档\footnote{https://github.com/lclevy/canon\_cr3}，自行实现了格式解析器。
-该解析器经测试在磁盘IO完全命中操作系统缓存的前提下，比开源的ExifTool\footnote{https://exiftool.org/}快约260倍，且不依赖于外部程序，使用更加简单。
+在提取CR3格式的照片元数据时，本工具根据网上公开的CR3格式反向工程文档\footnote{\url{https://github.com/lclevy/canon_cr3}}，自行实现了格式解析器。
+该解析器经测试在磁盘IO完全命中操作系统缓存的前提下，比开源的ExifTool\footnote{\url{https://exiftool.org/}}快约260倍，且不依赖于外部程序，使用更加简单。
 后端总共为前端提供如下5个HTTP RESTful API：
 \begin{enumerate}
 \item GET /photos：获取照片列表，及其元数据；

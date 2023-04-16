@@ -72,13 +72,22 @@
 \frontmatter
 \chapter{摘\texorpdfstring{\quad}{}要}
 
-本文研究的3D人脸重建方法旨在从少量非受限环境拍摄的照片中恢复人脸的3D模型，
+3D人脸重建方法旨在从照片等现实采集的数据中恢复人脸的3D模型，
 这些方法在计算机视觉、图形学和虚拟现实等领域都有广泛的应用。
-其重建的模型已被广泛应用于人脸识别、人脸表情捕捉、人脸跟踪、人脸动画合成等任务中。
-然而，现有基于少量非受限环境照片的重建方法流程复杂且精度有限，
-尚难以直接应用于需要直接渲染图像的游戏、影视等场景中。
-具体而言，现有方法未能充分利用照片中的边缘信息，它们依赖2D人脸关键点识别、多目立体等方法以重建人脸的几何形状，这增加了额外的复杂性和累积误差。
-本文提出了一种基于可微渲染的新方法，旨在克服这些限制，显著降低了3D人脸重建流程的复杂度，提高了重建的精度。
+高精度的人脸重建方法可为影视、游戏等高逼真渲染提供基础，
+但其所需数据采集通常需要专业的摄影设备和专门搭建的环境，成本高且实施困难。
+基于少量非受限环境照片的重建方法则较为便利，
+已被应用于人脸识别、人脸表情捕捉、人脸跟踪、人脸动画合成等任务中。
+然而，现有方法未能充分利用照片中的边缘信息，它们依赖2D人脸关键点识别、多目立体等方法以重建人脸的几何形状，这增加了额外的复杂性和累积误差。
+
+为解决高精度人脸数据采集环境要求高，实施困难的问题，
+本文提出了一套多视角高精度人脸数据采集方案。
+为控制实施难度，该方案尽量利用市面上可购买的部件，
+仅包含了少量易于制作的定制硬件。
+该方案搭建了完全受控的数据处理管线，
+为3D重建所需的采集、标定、数据整理等环节提供了全面的支持，
+力求实现高精度、高效率、且灵活可扩展的数据采集。
+为基于物理的高精度重建算法提供了坚实基础。
 
 为解决非受限环境照片中边缘信息难以利用的问题，
 本文提出了一种基于可微分渲染的3D人脸重建算法。
@@ -96,21 +105,29 @@
 其重建的人脸可在一定的视角、光照、表情变化下较为逼真的重新渲染。
 本文展示和评估了其重建效果。
 
-\keyword{关键词：} 可微分渲染；逆渲染；SDF贴图；人脸重建
+\keyword{关键词：} 人脸扫描；可微分渲染；逆渲染；SDF贴图；人脸重建
 
 \chapter{Abstract}
 
-This thesis focuses on 3D face reconstruction methods that aim to recover 3D models of faces from a limited number of unconstrained photos.
-These methods has a wide range of applications in various fields, including computer vision, graphics, and virtual reality.
-Despite their widespread applications in areas such as face recognition, face expression capturing, face tracking, face animation synthesis, etc.,
-current methods are complex and limited in accuracy.
-In particular, existing methods fall short when it comes to directly rendering images in applications such as games and movies.
-Specifically, the existing reconstruction methods do not fully utilize the edge information in the photos,
-instead, they rely on 2D face landmark detection, multi-view stereo, etc.\ to reconstruct the geometric shape of the face,
+face reconstruction methods aim to recover 3D models of faces from real-world data, such as photos.
+These methods have widespread applications in areas including computer vision, graphics, and virtual reality.
+High-precision face reconstruction methods provide the foundation for high-fidelity rendering in industries such as film and gaming.
+However, the data required for such methods often requires specialized photography equipment and a dedicated setup,
+which can be costly and challenging to implement.
+Methods based on a limited number of unconstrained photos are more convenient and
+have been applied to tasks such as face recognition, facial expression capturing, face tracking, face animation synthesis, etc.,
+However, existing methods have not fully utilized the edge information in photos,
+instead relying on 2D face landmark detection, multi-view stereo, etc.\ to reconstruct the geometric shape of the face,
 which introduces additional complexity and cumulative error.
-This thesis proposes a new approach based on differentiable rendering,
-which promises to overcome these limitations and significantly reduce the complexity of the 3D face reconstruction pipeline,
-as well as improve the accuracy of the reconstruction.
+
+To address the challenge of high-precision face data collection,
+where the requirements for the environment are high and the implementation is difficult,
+this thesis presents a scheme for collecting multi-view high-precision face data
+that utilizes readily available market components and a few simple DIY hardware for ease of implementation.
+This scheme establishes a fully controlled data processing pipeline,
+supporting all the requirements of 3D reconstruction, such as data collection, calibration, collation, etc.
+The scheme aims to achieve high-precision and high-efficiency, flexibility and scalability.
+The collected data provides a solid foundation for physically based high-precision reconstruction algorithms.
 
 To address the challenge of leveraging edge information in unconstrained photos,
 this thesis proposes a 3D face reconstruction algorithm based on differentiable rendering.
@@ -133,7 +150,7 @@ The pipeline employs existing neural network methods for initialization and inte
 The resulting reconstructed face can be realistically re-rendered under certain views, lighting, and expression changes.
 This thesis presents and evaluates the reconstruction results.
 
-\keyword{Keywords:} Differentiable rendering; Inverse rendering; SDF maps; Face reconstruction
+\keyword{Keywords:} Face scanning; Differentiable rendering; Inverse rendering; SDF maps; Face reconstruction
 
 \tableofcontents
 
@@ -157,7 +174,8 @@ This thesis presents and evaluates the reconstruction results.
 \chapter{结论与展望}
 \label{chap:conclusion}
 
-本文研究了基于非受限环境照片的3D人脸重建的问题，
+本文研究了3D人脸重建的问题，
+提出了一套多视角高精度人脸数据采集方案，
 提出了一种基于可微分渲染的3D人脸重建算法。
 在此之上，本文最终实现了一个完整的人脸重建流程，并取得了较为令人满意的效果。
 本文的主要贡献可概括如下：
