@@ -157,7 +157,7 @@
                 \cline{2-2}
             \end{tabular}
         \end{center}
-        \vspace{2cm}
+        \vspace{1cm}
         \vfil\null
     \end{titlepage}
 }

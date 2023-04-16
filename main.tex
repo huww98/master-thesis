@@ -20,8 +20,8 @@
 
 \newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}\GenericWarning{}{LaTeX Warning: TODO: #1}}
 
-\title{基于可微分渲染的3D人脸重建方法研究}
-\titleEN{3D Face Reconstruction Based on Differentiable~Rendering}
+\title{高精度3D人脸重建关键环境\texorpdfstring{\\}{}及可微分渲染技术研究}
+\titleEN{Research on Key Environment and Differentiable Rendering for High-Precision 3D Face Reconstruction}
 \date{\zhtoday}
 \classificationnumber{TP391.41}
 
@@ -46,6 +46,19 @@
         Version=\gitdescription
     }
 }
+
+\usepackage{xunicode-addon}
+\xeCJKDeclareCharClass{Default}{%
+  "24EA,        % ⓪
+  "2460->"2473, % ①–⑳
+  "3251->"32BF, % ㉑–㊿
+}
+% 将中文字体声明为（西文）字体族
+\newfontfamily\EnclosedNumbers{Noto Sans CJK SC}
+
+% 放置钩子，只让带圈字符才需更换字体
+\AtBeginUTFCommand[\textcircled]{\begingroup\EnclosedNumbers}
+\AtEndUTFCommand[\textcircled]{\endgroup}
 
 \begin{document}
 
@@ -133,6 +146,8 @@ This thesis presents and evaluates the reconstruction results.
 
 \include{related_work}
 
+\include{platform}
+
 \include{method}
 
 \include{recon}
@@ -147,6 +162,9 @@ This thesis presents and evaluates the reconstruction results.
 在此之上，本文最终实现了一个完整的人脸重建流程，并取得了较为令人满意的效果。
 本文的主要贡献可概括如下：
 \begin{enumerate}
+\item 本文详尽介绍了一套多视角高精度人脸数据采集方案，
+全面覆盖了3D重建所需的采集、标定、数据整理等步骤，
+并对其各个软硬件部件的设计思路和实现效果进行了分析。
 \item 本文提出并实现了一种适应未知背景的可微分逆渲染方法，
 其中包括了一种面积归一化的像素损失函数，及其基于nvdiffrast的高效实现。
 该方法充分利用可见性梯度，能有效将人脸模型对齐到照片中的边缘，并有应用到其他领域的潜力。
@@ -160,6 +178,13 @@ This thesis presents and evaluates the reconstruction results.
 然而还需要看到，相比于业界的先进方案，本文所述的内容在3D人脸重建的应用领域内尚处于蹒跚学步的阶段，
 距离真正影视级的工业应用依然较远，还有大量的问题需要解决：
 \begin{enumerate}
+\item 本文所述的人脸数据采集方案使用了很多消费级的硬件，这虽然简化了设计，但也损失了很多灵活性。
+例如，本文使用的微单相机在拍摄视频时不能保证严格的每帧同步，自动和手动对焦的切换无法自动化；
+本文使用的灯具加柔光箱无法实现灯光在不同方向上的细粒度调节，也无法自动控制亮度。
+\item 该采集方案需要配套的较为复杂的3D重建软件才能输出3D模型。
+高质量的、基于物理的多视角3D人脸重建算法虽然已有较成熟的商业方案，但尚无可直接使用的开源软件。
+因此，本文介绍的采集方案若要投入实际使用还需要进一步的开发工作。
+可微分渲染技术在多视角重建中的应用也是一个值得进一步研究的问题。
 \item 如何利用高质量的影视级人脸模型来补充高效重建算法的训练数据，从而改善其细节渲染效果，这依然是前沿的研究领域。
 新兴的扩散模型与3D人脸模型的结合可能是一个有前景的研究方向。
 \item 尽管已经取得了不错的几何精度，本文尚只利用了较为简单的3DMM模型作为先验知识。
@@ -197,6 +222,7 @@ This thesis presents and evaluates the reconstruction results.
 谭教授也为我们创造了舒适的实验室环境，并提供了高性能的机器学习计算资源。
 特别要感谢CVTE和王乃洲博士，本文的工作也是华南理工大学与CVTE合作项目的成果，
 CVTE为本文的所有实验提供了经济支持。
+感谢嘉立创公司提供的免费PCB打样服务，让我这个软件专业的学生也能有机会实现自己定制的硬件。
 同时，我要感谢我的同学们，与他们相处我感到很快乐，他们也给予了我很多的帮助。
 最后，感谢强盛的祖国，和平的时代，富饶的社会，以及无数为之而奋斗的先辈们，所有人的努力造就了今天令人安心的科研环境。
 }% end hideinblind
@@ -218,5 +244,7 @@ CVTE为本文的所有实验提供了经济支持。
 二、与学位内容相关的其它成果（包括专利、著作、获奖项目等）：
 
 }% end backmatter
+
+\include{appendix}
 
 \end{document}

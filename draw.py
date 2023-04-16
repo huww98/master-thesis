@@ -464,13 +464,13 @@ def loss_vs_rot():
 def main():
     FIG_PATH.mkdir(parents=True, exist_ok=True)
     loss_vs_rot()
-    # HDRI_stats()
+    HDRI_stats()
     problem()
     one_dim_loss()
     l2_loss()
     sdf()
-    # corner_fit()
-    # stab_ablation()
+    corner_fit()
+    stab_ablation()
     landmark()
 
 if __name__ == '__main__':
