@@ -19,6 +19,7 @@
 \DeclareMathOperator{\sg}{sg}
 
 \newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}\GenericWarning{}{LaTeX Warning: TODO: #1}}
+\newcommand{\changed}[1]{{\color{red}#1}}
 
 \title{高精度3D人脸重建关键环境\texorpdfstring{\\}{}及可微分渲染技术研究}
 \titleEN{Research on Key Environment and Differentiable Rendering for High-Precision 3D Face Reconstruction}
@@ -73,6 +74,7 @@
 \frontmatter
 \chapter{摘\texorpdfstring{\quad}{}要}
 
+\changed{
 3D人脸重建方法旨在从照片等现实采集的数据中恢复人脸的3D模型，
 这些方法在计算机视觉、图形学和虚拟现实等领域都有广泛的应用。
 高精度的人脸重建方法可为影视、游戏等高逼真渲染提供基础，
@@ -89,6 +91,7 @@
 为3D重建所需的采集、标定、数据整理等环节提供了全面的支持，
 力求实现高精度、高效率、且灵活可扩展的数据采集。
 为基于物理的高精度重建算法提供了坚实基础。
+}
 
 为解决非受限环境照片中边缘信息难以利用的问题，
 本文提出了一种基于可微分渲染的3D人脸重建算法。
@@ -106,10 +109,11 @@
 其重建的人脸可在一定的视角、光照、表情变化下较为逼真的重新渲染。
 本文展示和评估了其重建效果。
 
-\keyword{关键词：} 人脸扫描；可微分渲染；逆渲染；SDF贴图；人脸重建
+\keyword{关键词：} \changed{人脸扫描}；可微分渲染；逆渲染；SDF贴图；人脸重建
 
 \chapter{Abstract}
 
+\changed{
 face reconstruction methods aim to recover 3D models of faces from real-world data, such as photos.
 These methods have widespread applications in areas including computer vision, graphics, and virtual reality.
 High-precision face reconstruction methods provide the foundation for high-fidelity rendering in industries such as film and gaming.
@@ -129,6 +133,7 @@ This scheme establishes a fully controlled data processing pipeline,
 supporting all the requirements of 3D reconstruction, such as data collection, calibration, collation, etc.
 The scheme aims to achieve high-precision and high-efficiency, flexibility and scalability.
 The collected data provides a solid foundation for physically based high-precision reconstruction algorithms.
+}
 
 To address the challenge of leveraging edge information in unconstrained photos,
 this thesis proposes a 3D face reconstruction algorithm based on differentiable rendering.
@@ -151,7 +156,7 @@ The pipeline employs existing neural network methods for initialization and inte
 The resulting reconstructed face can be realistically re-rendered under certain views, lighting, and expression changes.
 This thesis presents and evaluates the reconstruction results.
 
-\keyword{Keywords:} Face scanning; Differentiable rendering; Inverse rendering; SDF maps; Face reconstruction
+\keyword{Keywords:} \changed{Face scanning}; Differentiable rendering; Inverse rendering; SDF maps; Face reconstruction
 
 \tableofcontents
 
@@ -175,15 +180,16 @@ This thesis presents and evaluates the reconstruction results.
 \chapter{结论与展望}
 \label{chap:conclusion}
 
+\changed{
 本文研究了3D人脸重建的问题。
 在使用专业设备的高精度人脸重建方向，本文提出了一套多视角高精度人脸数据采集方案。
-在基于非受限环境照片的人脸重建方向，本文提出了一种基于可微分渲染的3D人脸重建算法，
+在基于非受限环境照片的人脸重建方向，本文提出了一种基于可微分渲染的3D人脸重建算法，}
 在此之上，本文最终实现了一个完整的人脸重建流程，并取得了较为令人满意的效果。
 本文的主要贡献可概括如下：
 \begin{enumerate}
-\item 本文详尽介绍了一套多视角高精度人脸数据采集方案，
+\item \changed{本文详尽介绍了一套多视角高精度人脸数据采集方案，
 全面覆盖了3D重建所需的采集、标定、数据整理等步骤，
-并对其各个软硬件部件的设计思路和实现效果进行了分析。
+并对其各个软硬件部件的设计思路和实现效果进行了分析。}
 \item 本文提出并实现了一种适应未知背景的可微分逆渲染方法，
 其中包括了一种面积归一化的像素损失函数，及其基于nvdiffrast的高效实现。
 该方法充分利用可见性梯度，能有效将人脸模型对齐到照片中的边缘，并有应用到其他领域的潜力。
@@ -197,6 +203,7 @@ This thesis presents and evaluates the reconstruction results.
 然而还需要看到，相比于业界的先进方案，本文所述的内容在3D人脸重建的应用领域内尚处于蹒跚学步的阶段，
 距离真正影视级的工业应用依然较远，还有大量的问题需要解决：
 \begin{enumerate}
+\changed{
 \item 本文所述的人脸数据采集方案使用了很多消费级的硬件，这虽然简化了设计，但也损失了很多灵活性。
 例如，本文使用的微单相机在拍摄视频时不能保证严格的每帧同步，自动和手动对焦的切换无法自动化；
 本文使用的灯具加柔光箱无法实现灯光在不同方向上的细粒度调节，也无法自动控制亮度。
@@ -204,6 +211,7 @@ This thesis presents and evaluates the reconstruction results.
 高质量的、基于物理的多视角3D人脸重建算法虽然已有较成熟的商业方案，但尚无可直接使用的开源软件。
 因此，本文介绍的采集方案若要投入实际使用还需要进一步的开发工作。
 可微分渲染技术在多视角重建中的应用也是一个值得进一步研究的问题。
+}
 \item 如何利用高质量的影视级人脸模型来补充高效重建算法的训练数据，从而改善其细节渲染效果，这依然是前沿的研究领域。
 新兴的扩散模型与3D人脸模型的结合可能是一个有前景的研究方向。
 \item 尽管已经取得了不错的几何精度，本文尚只利用了较为简单的3DMM模型作为先验知识。
