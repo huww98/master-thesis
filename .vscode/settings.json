@@ -23,5 +23,6 @@
             ],
             "env": {}
         }
-    ]
+    ],
+    "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false,
 }

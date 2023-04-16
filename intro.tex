@@ -114,8 +114,8 @@
 \begin{figure}[htb]
     \centering
     \begin{tikzpicture}[
-        level 1/.style={sibling distance=7cm},
-        level 2/.style={sibling distance=4.2cm, nodes={font=\small,draw}},
+        level 1/.style={sibling distance=7.7cm},
+        level 2/.style={sibling distance=4.7cm, nodes={font=\small,draw}, align=center},
         level 4/.style={nodes={draw=none, font=\normalsize}},
         t/.style={align=center, text width=2em, font=\bf},
     ]
@@ -149,7 +149,7 @@
             }
         };
 
-        \node (t1) [t,left=of problem1] {难点};
+        \node (t1) [t,left=5mm of problem1] {难点};
         \node at (content1 -| t1) [t] {研究内容};
         \node at (chap3 -| t1) [t] {对应章节};
 
