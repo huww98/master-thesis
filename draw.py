@@ -13,6 +13,9 @@ from scipy.spatial.transform import Rotation as R
 plt.rcParams["pgf.texsystem"] = "xelatex"
 plt.rcParams["pgf.preamble"] = R"""\usepackage[zihao=-4]{ctex}
 \setmainfont{Times New Roman}"""
+plt.rcParams["pgf.rcfonts"] = False
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"]
 
 FIG_PATH = Path('build/figures')
 
