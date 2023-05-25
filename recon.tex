@@ -275,7 +275,85 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 
 \begin{figure}
 \centering
-\includegraphics[width=\linewidth]{figures/recon_render}
+\begin{tikzpicture}[
+    input/.style={draw, minimum width=2.5cm, minimum height=1cm, align=center, font=\small, ellipse, fill=black!10},
+    param/.style={input, fill=blue!20},
+    intermediate/.style={input, fill=green!20},
+    comp/.style={draw, text width=0.6cm, minimum height=1cm, align=center, fill=blue!10},
+    legend/.style={minimum width=0.7cm, minimum height=0.7cm},
+    node distance=0.3cm and 0.5cm,
+]
+    \linespread{1.0}
+    \node (sdf) [input] {SDF贴图};
+    \node (uv) [input, below=of sdf] {纹理坐标};
+    \node (tex) [param, below=of uv] {纹理系数};
+    \node (id) [param, below=of tex] {身份系数};
+    \node (exp) [param, below=of id] {表情系数};
+    \node (pose) [param, below=of exp] {姿态};
+    \node (delta) [param, below=of pose] {顶点偏移};
+
+    \node (bfm) [comp, right=of id, minimum height=3.6cm, text width=1cm] {BFM};
+
+    \draw [->] (tex) -- (bfm.west |- tex);
+    \draw [->] (id) -- (bfm.west |- id);
+    \draw [->] (exp) -- (bfm.west |- exp);
+
+    \node (normal) [intermediate, right=of bfm] {顶点法向};
+    \node (v) [intermediate, below=of normal] {顶点坐标};
+    \node (t) [intermediate, above=of normal] {顶点颜色};
+    \node (idx) [input, below=of v] {顶点索引};
+
+    \draw [->] (v) -- (normal);
+    \draw [->] (bfm.east |- v) -- (v);
+    \draw [->] (bfm.east |- t) -- (t);
+
+    \coordinate (a) at ($(v.west)!0.5!(bfm.east |- v)$);
+    \draw (pose) -| (a);
+    \draw (delta) -| (a);
+
+    \node (rast) [comp, right=7mm of $(v.east)!0.5!(idx.east)$, minimum height=2.5cm] {光栅化};
+
+    \draw [->] (v) -- node [above, font=\footnotesize] {投影} (rast.west |- v);
+    \draw [->] (idx) -- (rast.west |- idx);
+
+    \node (interpolate) [comp, right=of {$(t)!.5!(normal)$} -| rast.east, minimum height=4.9cm] {插值};
+
+    \draw [->] (rast.east |- v) -- (interpolate.west |- v);
+    \draw [->] (t)      -- (interpolate.west |- t);
+    \draw [->] (normal) -- (interpolate.west |- normal);
+    \draw [->] (uv)     -- (interpolate.west |- uv);
+
+    \node (shade) [comp, right=of interpolate.south east, anchor=south west, minimum height=3.6cm] {着色};
+    \node (sample) at (shade |- sdf.north) [comp, anchor=north] {纹理采样};
+    \node (light) [param, below=0.5cm of shade] {光照系数};
+
+    \draw [->] (light) -- (shade);
+    \draw [->] (interpolate.east |- v) -- (shade.west |- v);
+    \draw [->] (interpolate.east |- normal) -- (shade.west |- normal);
+    \draw [->] (interpolate.east |- t) -- (sample.west |- t);
+    \draw [->] (interpolate.east |- uv) -- (sample.west |- uv);
+    \draw [->] (sdf) -- (sample.west |- sdf);
+
+    \node (aa) [comp, right=of sample.north east, anchor=north west, minimum height=6.24cm] {抗锯齿};
+
+    \draw [->] (sample) -- (aa.west |- sample);
+    \draw [->] (shade) -- (aa.west |- shade);
+
+    \node (out) [intermediate, right=of aa, minimum width=1.6cm] {渲染\\图像};
+    \node (photo) [input, below=2.5cm of out, minimum width=1.6cm] {照片};
+
+    \draw [->] (aa) -- (out);
+    \draw [->] (photo) -| (aa);
+    \draw [<->] (out) -- node [right, font=\small, text width=0.6cm, align=left] {损失函数} (photo);
+
+    \node (l) [anchor=east] at (out.east |- delta) {中间结果};
+    \node (l) [left=1mm of l, intermediate, legend] {};
+    \node (l) [left=of l] {离散输入};
+    \node (l) [left=1mm of l, input, legend] {};
+    \node (l) [left=of l] {优化参数};
+    \node (l) [left=1mm of l, param, legend] {};
+
+\end{tikzpicture}
 \caption{渲染的整体流程}
 \label{fig:recon_render}
 \end{figure}
