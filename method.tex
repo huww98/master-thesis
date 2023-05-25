@@ -365,7 +365,7 @@ $\sg$为梯度停止操作符，表示在求导时该项视为常数。
         \textstyle \left\| \mathbf{c}_i - \mathcal{I}_i \right\|_1 |\mathcal{A}| -
         \textstyle \sum_j \sigma_j \left\| \mathbf{c}_j - \mathcal{I}_j \right\|_1
     }{|\mathcal{A}|^2} - \alpha
-\right]\frac{\partial\sigma_i}{\partial\theta}
+\right]\frac{\partial\sigma_i}{\partial\theta}\text{。}
 \end{equation}
 与之前的梯度结果\eqref{eq:loss_n_pixel_gradient}对比，该函数使用常数$|\mathcal{A}|$代替了变量$\sum_{i} \sigma$，以避免在每次迭代中计算前景模型覆盖面积。
 由于基于梯度的逆渲染方法通常并不能处理大范围的模型移动，因此该项可以近似看作常数，不会带来太大的误差。
