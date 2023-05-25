@@ -116,7 +116,29 @@
 控制器与控制器，控制器与相机间的连接拓扑如图\ref{fig:passive_sync_topo}所示。
 \begin{figure}
     \centering
-    \includegraphics[height=5cm]{figures/passive_sync_topo}
+    \begin{tikzpicture}[
+        part/.style={draw, minimum width=2cm, minimum height=1.5cm, align=center},
+        controller/.style={part, fill=blue!20},
+        camera/.style={part, fill=brown!20},
+    ]
+    \node [controller] (controller1) {控制器};
+    \node [controller, above=of controller1] (controller2) {控制器};
+
+    \node [camera, right=2cm of controller1] (camera1) {相机};
+    \node [camera, right=2cm of controller2] (camera2) {相机};
+
+    \draw [->] ($(controller1.west) - (2cm, 0)$) -- node[above]{触发按钮} (controller1);
+
+    \draw [->] (controller1) -- (camera1);
+    \draw [->] (controller1) -- (controller2) -- (camera2);
+
+    \node [controller, above right=0.3cm and 0.3cm of controller2.south west] {控制器};
+    \node [camera, above right=0.3cm and 0.3cm of camera1.south west] {相机};
+    \node [camera, above right=0.6cm and 0.6cm of camera1.south west] {相机};
+    \node [camera, above right=0.3cm and 0.3cm of camera2.south west] {相机};
+    \node [camera, above right=0.6cm and 0.6cm of camera2.south west] {相机};
+
+    \end{tikzpicture}
     \caption{被动同步装置的连接拓扑结构}
     \label{fig:passive_sync_topo}
 \end{figure}
@@ -322,11 +344,45 @@ ISO较高的照片由于噪声方差较大，也能自动在合成中降低权�
 
 \begin{figure}
 \centering
-\includegraphics[width=0.8\linewidth]{figures/active_sync.png}
-\caption{主动同步控制器硬件结构}
+\begin{tikzpicture}[
+    node distance=0.2cm,
+    part/.style={rectangle, draw=black, minimum width=4cm, minimum height=1cm, align=center},
+    conn/.style={above, font=\small},
+    inner/.style={part, fill=black!10},
+    io/.style={part}
+]
+    \linespread{1.2}
+    \node (sync_in) [io]{外部同步接口};
+    \node (btn_in) [io, below=of sync_in]{4路按钮输入};
+    \node (shift_out) [inner, below=of btn_in]{移位寄存器};
+    \node (sync_out) [io, right=of shift_out]{24路相机/闪光灯同步接口};
+    \node (oled) [io, below=of shift_out]{OLED显示模块};
+
+    \node (stm32) [
+        inner,
+        minimum width=0,
+        minimum height=4.6cm,
+        left=1.2cm of $(btn_in.west)!0.5!(shift_out.west)$
+    ]{STM32\\最小系统};
+    \node [
+        inner,
+        minimum width=0,
+        minimum height=0,
+        above=of stm32.south,
+        fill=brown!20
+    ]{3.3V\\供电};
+
+    \draw [<-] (stm32.east |- sync_in)   -- node[conn]{GPIO} (sync_in);
+    \draw [<-] (stm32.east |- btn_in)    -- node[conn]{GPIO} (btn_in);
+    \draw [->] (stm32.east |- shift_out) -- node[conn]{GPIO} (shift_out);
+    \draw [->] (stm32.east |- oled)      -- node[conn]{I2C}  (oled);
+
+    \draw [->] ($(stm32.west) - (1.5cm, 0)$) -- node[conn]{USB} node[conn,below]{5V电源} (stm32);
+\end{tikzpicture}
+\caption{主动同步控制器硬件拓扑结构}
 \label{fig:active_sync}
 \end{figure}
-图\ref{fig:active_sync}展示了本方案中设计的主动同步控制器的硬件结构。
+图\ref{fig:active_sync}展示了本方案中设计的主动同步控制器的硬件拓扑结构。
 该装置以一块STM32F103C8T6单片机为核心。
 它通过GPIO接口，控制3块串联的74HC595D 8位移位寄存器，以控制最多24台相机或闪光灯。
 作为系统指令输入和状态的反馈，该装置通过GPIO连接有4个机械按钮，可由软件指定其具体功能，并通过I2C总线连接了一个OLED显示屏模块。
