@@ -245,7 +245,7 @@
     \begin{itemize}
         \setlength\itemsep{0pt}
         \item[$\square$]保密（校保密委员会审定为涉密学位论文时间：\dateform ），于\dateform 解密后适用本授权书。
-        \item[\rlap{$\checkmark$}$\square$]不保密,同意在校园网上发布，供校内师生和与学校有共享协议的单位浏览；同意将本人学位论文编入有关数据库进行检索，传播学位论文的全部或部分内容。
+        \item[\rlap{$\checkmark$}$\square$]不保密，同意在校园网上发布，供校内师生和与学校有共享协议的单位浏览；同意将本人学位论文编入有关数据库进行检索，传播学位论文的全部或部分内容。
     \end{itemize}
 
     (请在以上相应方框内打“$\checkmark$”)
