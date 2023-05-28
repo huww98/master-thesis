@@ -232,7 +232,8 @@ ISO较高的照片由于噪声方差较大，也能自动在合成中降低权�
 需要注意的是，这里显示的球的轮廓虽然很接近，但并不是一个圆形。
 
 \def\p{\mathrm}
-\begin{wrapfigure}{r}{4cm}
+\begin{wrapfigure}{r}{4.5cm}
+\centering
 \begin{tikzpicture}
     \filldraw[black] (0,0) circle (2pt) node[anchor=west]{相机$\p{O}$};
     \draw (0,0) -- (0,1.5) node[right=-1mm] {$f_x$} -- (0,2);
@@ -255,16 +256,18 @@ ISO较高的照片由于噪声方差较大，也能自动在合成中降低权�
 
     \node [above] at ($(-2,2)!0.5!(I2)$) {$l$};
 \end{tikzpicture}
+\caption{反射球位置解算}
+\label{fig:sphere_locator_math}
 \end{wrapfigure}
 在获得了用户输入的左、右、上三个参数后，本文将通过以下算法解算球在相机坐标系下的位置。
 首先，由于本文假设光线来自无限远处，因此最终坐标映射的结果将和球的尺度无关，不妨将球的半径设为1。
 用户指定的三个参数可各确定一个与球相切的平面，以球心到三个面的距离分别为1的条件联立方程，即可求解出球心的坐标。
 
-右图为整个场景的俯视图，其中下方的三角形代表相机的视锥体，图中标注了相机经过标定后的焦距$f_x$和光心$c_x$。上方的圆代表反射球，两条切线分别表示由用户输入确定的左，右两个平面。
+右图\ref{fig:sphere_locator_math}为整个场景的俯视图，其中下方的三角形代表相机的视锥体，图中标注了相机经过标定后的焦距$f_x$和光心$c_x$。上方的圆代表反射球，两条切线分别表示由用户输入确定的左，右两个平面。
 下面以左平面为例，根据用户输入的像素坐标$l$求解左平面的法向量$\mathbf{n}_l$。
 在相机坐标系中，取点$\p{A} = (l-c_x, 1, f_x)$、$\p{B} = (l-c_x, 0, f_x)$。
 可以验证该两点均投影在像素横坐标为$l$的位置（图中左侧实心点处），
-于是可以通过点$\p{O}$、$\p{A}$、$\p{B}$确定该平面，其法向量为
+于是可以通过点$\p{O}$、$\p{A}$、$\p{B}$确定该平面，其法向量为：
 \begin{equation}
 \mathbf{n}_l = \overrightarrow{\p{O}\p{A}} \times \overrightarrow{\p{O}\p{B}}
 = \left[f_x, 0, c_x - l\right]
