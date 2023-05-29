@@ -376,15 +376,15 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 \mathbf{B}_\mathrm{id}\mathbf{\alpha}_\mathrm{id} +
 \mathbf{B}_\mathrm{exp}\mathbf{\alpha}_\mathrm{exp} +
 \mathbf{S}_\mathrm{off}\\
-\mathbf{T} &= \bar{\mathbf{T}} +
+\mathbf{\rho} &= \bar{\mathbf{\rho}} +
 \mathbf{B}_\mathrm{tex}\mathbf{\alpha}_\mathrm{tex}
 \text{。}
 \end{align}
-其中$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$分别是平均的人脸形状和反射率，
+其中$\bar{\mathbf{S}}$和$\bar{\mathbf{\rho}}$分别是平均的人脸形状和反射率，
 $\mathbf{B}_\mathrm{id}$、$\mathbf{B}_\mathrm{exp}$和$\mathbf{B}_\mathrm{tex}$分别是身份、表情和反射率的PCA基，并预先根据其对应的标准差进行了放大。
 与之前方法\citep{deep3d,GuoZCJZ19}保持一致，本文使用了BFM 2009模型\citep{BFM}中的身份和反射率基，以及从Face Warehouse\citep{FaceWarehouse}中创建的表情基。
 $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha}_\mathrm{tex}$分别是身份、表情和纹理的系数，是所需优化的参数。
-与之前的方法不同，本文使用了\ref{sec:recon_init}节中预测的系数来计算$\bar{\mathbf{S}}$和$\bar{\mathbf{T}}$，从而利用神经网络中的知识作为逆渲染优化的先验。
+与之前的方法不同，本文使用了\ref{sec:recon_init}节中预测的系数来计算$\bar{\mathbf{S}}$和$\bar{\mathbf{\rho}}$，从而利用神经网络中的知识作为逆渲染优化的先验。
 此外，本文还额外对顶点位置增加了一个偏移量$\mathbf{S}_\mathrm{off}$，以允许其偏离PCA产生的低维空间，拟合更加多样的人脸形状，从而充分发挥逆渲染用于监督的信息量大的优势。
 
 在获得顶点位置后，还需将其变换到相机坐标系并投影到裁切空间中，以便后续的光栅化。投影后顶点在裁切空间中的坐标为：
@@ -724,6 +724,19 @@ $10^{-5}$、$10^{-9}$、$40$、$10^{-4}$、$10^{-3}$、$10^{-3}$。
 这说明本文实现的光照模型可较好地拟合并解耦照片中的光照效果。
 同时，正脸部分毛孔和胡须的细节也被很好地保留了下来，两侧从照片中看不到的部分也被很好地补全了，且实现了平滑过渡。
 这说明了本文使用的纹理补全方法的有效性。
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=0.6\linewidth,trim={0 0 0 200},clip]{figures/diffrast_face/04114/final_diffuse_center}
+    \caption[重建的反射率纹理中的典型缺陷]{重建的反射率纹理中的典型缺陷。图\ref{fig:unwrap_result}的最终重建结果。}
+    \label{fig:diffuse_map_defect}
+\end{figure}
+但本文的方法仍偶尔会产生一些意外的缺陷。
+如图\ref{fig:diffuse_map_defect}所示，
+鼻孔周围有异常的蓝绿色像素，这是由于在使用球谐函数拟合环境光照时，下方光线过暗，导致球谐函数给出了负的入射光强，并在红色通道计算得到了负的反射率。
+这虽然在拟合的光照条件下渲染没有问题，但将导致在新光照环境渲染时产生明显瑕疵。
+该问题可通过有针对性地优化光照模型及其参数的正则项来改善。
+此外，该例子中鼻子右边的区域由于受到遮挡，其纹理完全由3DMM计算的$\rho$给出，缺少细节，且在遮挡的边缘没有过渡区域，因此和周围的纹理有较强的割裂感。
+未来可结合现有图片生成模型来改善这一问题。
 
 \subsection{边缘对齐效果比较}
 \label{sec:edge_align_exp}
