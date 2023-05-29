@@ -236,14 +236,14 @@ nvdiffrast抗锯齿模块工作时将以一对相邻的像素点为单位（如�
 \paragraph{SDF贴图的计算}
 关于SDF的计算方法有很多，下面介绍本文的实现方式。
 本文首先使用Blender将3D人脸模型展开至纹理空间，然后在展开后的所有三角形中查找仅属于一个三角形的边做为所谓人为制造的边缘。
-并将这些边加入CGAL封装的层次包围盒\footnote{\url{https://doc.cgal.org/latest/AABB_tree/index.html}}数据结构中，以便快速查找。
+并将这些边加入CGAL封装的层次包围盒\citep{cgal_aabb}数据结构中，以便快速查找。
 随后调用OpenGL将所有展开后的三角形光栅化渲染至图像中，得到边缘内部像素的遮罩。
 最后，对于贴图中的每个像素，从层次包围盒中查找与其最近的边，计算其与该边的距离$|d|$，并根据遮罩赋予其符号。$d$的梯度方向即为从该像素指向该边上与其最近点的方向（或反方向），模长为$1$。
 本方法相比\citet{green2007improved}介绍的穷举方法效率更高，本方法计算$256\times256$分辨率的贴图，使用CPU单线程用时在10毫秒左右。
 
 \paragraph{梯度计算}
 梯度$\dgrad$的计算与所使用的渲染方式有关。
-例如OpenGL支持通过数值方法直接求任意变量关于像素坐标的梯度\footnote{\url{https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml}}。
+例如OpenGL支持通过数值方法直接求任意变量关于像素坐标的梯度\citep{opengl_dfdx}。
 而针对本文使用的nvdiffrast来说，本文首先以解析法随SDF一同计算其关于纹理坐标的梯度$\frac{\partial d}{\partial u}$和$\frac{\partial d}{\partial v}$，并将其与$d$一同保存于贴图中。
 然后根据nvdiffrast的插值模块给出的纹理坐标和像素坐标间的雅可比矩阵将其转换到像素坐标：
 \begin{equation}
