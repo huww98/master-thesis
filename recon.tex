@@ -428,7 +428,7 @@ $\mathbf{\alpha}_\mathrm{id}$、$\mathbf{\alpha}_\mathrm{exp}$和$\mathbf{\alpha
 
 \paragraph{片元着色}
 片元着色的目的是根据光照模型和上述各种属性计算每个像素最终的颜色，即其向相机方向反射的光线的能量分布。
-本文使用二阶球谐函数（SH）来表示光照，并定义在YUV色彩空间上。该模型每个通道使用9个参数，共27个参数即可近似表示低频环境光照，
+本文使用二阶球谐函数（SH）来表示光照。该模型每个通道使用9个参数，共27个参数即可近似表示低频环境光照，
 具体计算方式是\citet{sh_diffuse}的推导结果的实现。
 对于每个像素，其各个方向的总入射光强为：
 \def\shco{\mathbf{L}}
@@ -504,7 +504,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
     \| \mathbf{\alpha}_\mathrm{tex} \|_2^2\right) +
     \alpha_2 \| \mathbf{S}_\mathrm{off} \|_F^2 +
     \alpha_3 \mathcal{L}_\delta +
-    \alpha_4 \| \mathbf{L}_{UV} \|_2^2 \\
+    \alpha_4 \| \mathbf{L}-\mathbf{L}_0 \|_2^2 \\
     + \alpha_5 \| \mathbf{E}^\mathrm{off} \|_F^2 +
     \alpha_6 \| \nabla_{x,y} \mathbf{E}^\mathrm{off} \|_F^2
     \text{，}
@@ -512,7 +512,7 @@ $\mathcal{L}_\mathrm{reg}$则是正则化项，包括：
 \end{equation}
 其中第一项是3DMM系数的正则化项，该项使3DMM的结果保持在其先验分布范围内；
 第二项约束顶点偏移量的大小，避免模型过度偏离3DMM的预测；
-第四项使环境光照更趋向于白色，从而鼓励模型使用反射率参数来解释照片中的颜色；
+第四项使环境光照更接近手工指定的先验光照条件$\mathbf{L}_0$，该条件为下暗上亮的白色光照；
 最后两项分别约束光照修正场和其梯度的大小，限制其强度和频率；
 第三项是拉普拉斯正则项，它使模型顶点间的相对位置和拓扑结构在优化过程中保持稳定，其定义为：
 \begin{equation}
