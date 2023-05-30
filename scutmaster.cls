@@ -114,9 +114,17 @@
 \DeclareRobustCommand*{\supervisorEN}[2]{\gdef\@supervisortitleEN{#1}\gdef\@supervisorEN{#2}}
 \DeclareRobustCommand*{\school}[1]{\gdef\@school{#1}}
 
+\DeclareRobustCommand*{\defensedate}[1]{\gdef\@defensedate{#1}}
+\DeclareRobustCommand*{\grantdate}[1]{\gdef\@grantdate{#1}}
+
+\DeclareRobustCommand*{\defensecommittee}[2]{\gdef\@defensecommitteechair{#1}\gdef\@defensecommitteemember{#2}}
+
 \RequirePackage{tabularx}
 
 \newcommand{\dateform}{\hphantom{2023}年\hphantom{12}月\hphantom{31}日}
+
+\gdef\@defensedate{\dateform}
+\gdef\@grantdate{\dateform}
 
 \newenvironment{standalonepage}{
     \cleardoublepage
@@ -146,7 +154,7 @@
                 学位类别 & \@degreeclass\\
                 \cline{2-2}
                 \hideinblind{
-                    指导教师 & \@supervisor~\@supervisortitle\\
+                    指导教师 & \@supervisor\\
                     \cline{2-2}
                             &\\
                     \cline{2-2}
@@ -204,12 +212,14 @@
             作者姓名：\@author     & 指导教师姓名、职称：\@supervisor~\@supervisortitle\\
             申请学位级别：\@degree & 学科专业名称：\@major \\
             研究方向：\@majordir  & \\
-            论文提交日期：\@date      & 论文答辩日期：\dateform\\
-            学位授予单位：华南理工大学 & 学位授予日期：\dateform\\
+            论文提交日期：\@date      & 论文答辩日期：\@defensedate\\
+            学位授予单位：华南理工大学 & 学位授予日期：\@grantdate\\
             答辩委员会成员： & \\
-            主席：\underline{\hspace{10em}}& \\
             \multicolumn{2}{l}{
-                委员：\underline{\hspace{30em}}
+                主席：\underline{\makebox[10em][l]{\@defensecommitteechair}}
+            } \\
+            \multicolumn{2}{l}{
+                委员：\underline{\makebox[30em][l]{\@defensecommitteemember}}
             } \\
         \end{tabularx}
     \end{standalonepage}
