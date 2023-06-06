@@ -89,7 +89,7 @@ INTEGERS {
     #1 'show.preprint :=
     #0 'show.note :=
     #0 'show.english.translation :=
-    #1 'end.with.period :=
+    #0 'end.with.period :=
   }
 
   ENTRY

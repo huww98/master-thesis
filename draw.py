@@ -16,6 +16,7 @@ plt.rcParams["pgf.preamble"] = R"""\usepackage[zihao=-4]{ctex}
 plt.rcParams["pgf.rcfonts"] = False
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = ["Times New Roman"]
+plt.rcParams["font.sans-serif"] = ["Noto Sans CJK JP", "sans-serif"]
 
 FIG_PATH = Path('build/figures')
 
@@ -80,7 +81,6 @@ def problem():
     axes_loss[0].step(X_off, loss, color='red')
     axes_grad[0].plot([-0.5, x-0.5], [0, 0], color='red')
 
-    Xo = X_off[:, None, None, None, None]
     def plot_to(idx):
         axes_model[idx].imshow(model, interpolation='none', origin='lower', cmap='gray')
         loss = np.sum(np.abs(model_batch - target), axis=(1, 2, 3))
@@ -89,10 +89,14 @@ def problem():
         axes_grad[idx].axhline(0, color=[0.7]*3, linewidth=1)
         axes_grad[idx].plot(X_off, grad, color='red')
 
-    model = k * (X[..., None, None] + sample) - (Y[..., None, None] + sample[:, None]) < a
-    model = np.mean(model, axis=(-1, -2))[..., None]
-    model_batch = k * ((X[..., None, None] - Xo) + sample) - (Y[..., None, None] + sample[:, None]) < 0.5
-    model_batch = np.mean(model_batch, axis=(-1, -2))[..., None]
+    def calc_model(X_off):
+        model = k * ((X[..., None, None] - X_off) + sample) - (Y[..., None, None] + sample[:, None]) < 0.5
+        return np.mean(model, axis=(-1, -2))
+
+    model = calc_model(a_x)[..., None]
+    model_batch = np.empty(X_off.shape + model.shape)
+    for x, m in zip(X_off, model_batch):
+        m[..., 0] = calc_model(x)
     plot_to(1)
 
     model = FG * model + BG * (1 - model)
