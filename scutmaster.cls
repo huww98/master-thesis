@@ -112,6 +112,7 @@
 
 \DeclareRobustCommand*{\supervisor}[2]{\gdef\@supervisor{#1}\gdef\@supervisortitle{#2}}
 \DeclareRobustCommand*{\supervisorEN}[2]{\gdef\@supervisortitleEN{#1}\gdef\@supervisorEN{#2}}
+\DeclareRobustCommand*{\supervisorEx}[1]{\gdef\@supervisorEx{#1}}
 \DeclareRobustCommand*{\school}[1]{\gdef\@school{#1}}
 
 \DeclareRobustCommand*{\defensedate}[1]{\gdef\@defensedate{#1}}
@@ -142,7 +143,7 @@
             \heiti
             \includegraphics[width=0.77\textwidth]{figures/SCUT}\par
             \zihao{-0}专业学位硕士学位论文\par\vfill
-            \zihao{2}\uline{\@title}\par\vfill
+            \zihao{2}\uline{\hspace*{\fill}\@title\hspace*{\fill}}\par\vfill
 
             \zihao{3}
             \hbadness=10000 % suppress warning
@@ -156,7 +157,7 @@
                 \hideinblind{
                     指导教师 & \@supervisor\\
                     \cline{2-2}
-                            &\\
+                            & \@supervisorEx\\
                     \cline{2-2}
                 }
                 所在学院 & \@school\\
@@ -196,17 +197,18 @@
             分类号 & \@classificationnumber & 学校代码：10561 \\
             学号  & \@studentnumber &  \\
         \end{tabularx}
-        \vskip 80pt
-        \zihao{-2}
-        \begin{center}
-            华南理工大学硕士学位论文
 
-            \vskip 50pt\zihao{-1}
-            \textbf{\@title}\par
-        \end{center}
+        \vskip 80pt
+        {
+            \centering\zihao{-2}
+            华南理工大学硕士学位论文\par
+        }
+
+        \vskip 50pt\zihao{-1}\noindent
+        \textbf{\hspace*{\fill}\@title\hspace*{\fill}}\par
 
         \vfill
-        \setlength\extrarowheight{1em}
+        \setlength\extrarowheight{0.7em}
         \songti\zihao{5}\noindent
         \begin{tabularx}{\textwidth}{XX}
             作者姓名：\@author     & 指导教师姓名、职称：\@supervisor~\@supervisortitle\\
