@@ -106,6 +106,7 @@
 \DeclareRobustCommand*{\phone}[1]{\gdef\@phone{#1}}
 \DeclareRobustCommand*{\email}[1]{\gdef\@email{#1}}
 \DeclareRobustCommand*{\address}[1]{\gdef\@address{#1}}
+\DeclareRobustCommand*{\dateofsubmit}[1]{\gdef\@dateofsubmit{#1}}
 
 \DeclareRobustCommand*{\degree}[2]{\gdef\@degreeclass{#1}\gdef\@degree{#2}}
 \DeclareRobustCommand*{\major}[2]{\gdef\@major{#1}\gdef\@majordir{#2}}
@@ -124,6 +125,7 @@
 
 \newcommand{\dateform}{\hphantom{2023}年\hphantom{12}月\hphantom{31}日}
 
+\gdef\@dateofsubmit{\@date}
 \gdef\@defensedate{\dateform}
 \gdef\@grantdate{\dateform}
 
@@ -162,7 +164,7 @@
                 }
                 所在学院 & \@school\\
                 \cline{2-2}
-                论文提交日期 & \@date\\
+                论文提交日期 & \@dateofsubmit\\
                 \cline{2-2}
             \end{tabular}
         \end{center}
@@ -214,8 +216,8 @@
             作者姓名：\@author     & 指导教师姓名、职称：\@supervisor~\@supervisortitle\\
             申请学位级别：\@degree & 学科专业名称：\@major \\
             研究方向：\@majordir  & \\
-            论文提交日期：\@date      & 论文答辩日期：\@defensedate\\
-            学位授予单位：华南理工大学 & 学位授予日期：\@grantdate\\
+            论文提交日期：\@dateofsubmit & 论文答辩日期：\@defensedate\\
+            学位授予单位：华南理工大学    & 学位授予日期：\@grantdate\\
             答辩委员会成员： & \\
             \multicolumn{2}{l}{
                 主席：\underline{\makebox[10em][l]{\@defensecommitteechair}}
