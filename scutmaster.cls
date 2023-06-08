@@ -121,6 +121,9 @@
 
 \DeclareRobustCommand*{\defensecommittee}[2]{\gdef\@defensecommitteechair{#1}\gdef\@defensecommitteemember{#2}}
 
+\DeclareRobustCommand*{\authscan}[1]{\gdef\@authscan{#1}}
+\DeclareRobustCommand*{\defensescan}[1]{\gdef\@defensescan{#1}}
+
 \RequirePackage{tabularx}
 
 \newcommand{\dateform}{\hphantom{2023}年\hphantom{12}月\hphantom{31}日}
@@ -131,6 +134,9 @@
 
 \gdef\@defensedate{\dateform}
 \gdef\@grantdate{\dateform}
+
+\gdef\@authscan{}
+\gdef\@defensescan{}
 
 \newenvironment{standalonepage}{
     \cleardoublepage
@@ -233,7 +239,10 @@
     \end{standalonepage}
 }
 
+\RequirePackage{pdfpages}
+
 \newcommand{\declareoforiginality}{
+\ifx\@authscan\empty
     \begin{standalonepage}
     \linespread{1.2}
     \songti\zihao{4}
@@ -278,6 +287,10 @@
     }
     \end{tabular}
     \end{standalonepage}
+\else
+    \cleardoublepage
+    \includepdf{\@authscan}
+\fi
 }
 
 \let\bookfrontmatter\frontmatter
@@ -306,4 +319,12 @@
             \hypersetup{pdfauthor={\@author}}
         }
     }{}
+}
+
+\AtEndDocument{
+    \ifx\@defensescan\empty\else
+        \pagestyle{empty}
+        \cleardoublepage
+        \includepdf{\@defensescan}
+    \fi
 }
