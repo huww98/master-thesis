@@ -19,6 +19,9 @@ jobs:
           git config --system --add safe.directory '*'
           make
 
+      - name: print bibliography
+        run: python3 ref.py < build/main.bbl | detex
+
       - uses: actions/upload-artifact@v3
         with:
           name: thesis
